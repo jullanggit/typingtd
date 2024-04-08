@@ -8,4 +8,4 @@ impl Plugin for TypingPlugin {
     }
 }
 
-fn typing(mut query: Query<>)
+fn typing(keyboard_input: Res<ButtonInput<KeyCode>>) {}
