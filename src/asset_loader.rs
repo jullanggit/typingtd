@@ -1,29 +1,27 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
+use bevy_common_assets::json::JsonAssetPlugin;
+
+use crate::typing::Wordlists;
 
 #[derive(Resource, Debug, Default, AssetCollection)]
-pub struct Sprites {
-    // #[asset(texture_atlas_layout(tile_size_x = 8., tile_size_y = 8., columns = 8, rows = 12))]
-    // pub map_layout: Handle<TextureAtlasLayout>,
-    // #[asset(path = "cavesofgallet_tiles.png")]
-    // #[asset(image(sampler = nearest))]
-    // pub map_texture: Handle<Image>,
-    // #[asset(path = "map1.png")]
-    // pub level1: Handle<Image>,
+pub struct Handles {
+    #[asset(path = "all.words.json")]
+    pub wordlists: Handle<Wordlists>,
 }
 
 pub struct AssetLoaderPlugin;
 
 impl Plugin for AssetLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Sprites>()
+        app.init_resource::<Handles>()
             .init_state::<SpritesLoadingStates>()
             .add_loading_state(
                 LoadingState::new(SpritesLoadingStates::Loading)
                     .continue_to_state(SpritesLoadingStates::Finished)
-                    .load_collection::<Sprites>(),
+                    .load_collection::<Handles>(),
             )
-            .add_systems(Startup, load_assets);
+            .add_plugins(JsonAssetPlugin::<Wordlists>::new(&["words.json"]));
     }
 }
 
@@ -32,19 +30,4 @@ pub enum SpritesLoadingStates {
     #[default]
     Loading,
     Finished,
-}
-
-pub fn load_assets(
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    mut sprites: ResMut<Sprites>,
-) {
-    // // texture
-    // let texture_handle = asset_server.load("cavesofgallet_tiles.png");
-    // sprites.map_texture = texture_handle;
-    //
-    // // layout
-    // let layout = TextureAtlasLayout::from_grid(Vec2::new(8.0, 8.0), 8, 12, None, None);
-    // let layout_handle = texture_atlases.add(layout);
-    // sprites.map_layout = layout_handle;
 }
