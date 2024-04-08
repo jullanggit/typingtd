@@ -28,6 +28,7 @@ fn main() {
     // debug builds
     #[cfg(debug_assertions)]
     app.add_plugins(WorldInspectorPlugin::default());
+    #[cfg(debug_assertions)]
     app.add_plugins(FpsPlugin);
 
     // wasm stuff
