@@ -8,12 +8,14 @@ use asset_loader::AssetLoaderPlugin;
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use camera::CameraPlugin;
 use fps::FpsPlugin;
+use typing::TypingPlugin;
 #[cfg(target_family = "wasm")]
 use wasm::WasmPlugin;
 
 mod asset_loader;
 mod camera;
 mod fps;
+mod typing;
 #[cfg(target_family = "wasm")]
 mod wasm;
 
@@ -36,7 +38,7 @@ fn main() {
     app.add_plugins(WasmPlugin);
 
     // game plugins
-    app.add_plugins((CameraPlugin, AssetLoaderPlugin));
+    app.add_plugins((CameraPlugin, AssetLoaderPlugin, TypingPlugin));
 
     app.run();
 }
