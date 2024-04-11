@@ -1,13 +1,12 @@
 use bevy::prelude::*;
 use serde::Deserialize;
 
-use crate::asset_loader::Handles;
-
 // Plugin
 pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, read_input);
+        app.init_resource::<TypingState>()
+            .add_systems(Update, read_input);
     }
 }
 
@@ -17,17 +16,67 @@ pub struct Wordlists {
     english: Vec<String>,
 }
 
-pub struct TypingState {
-    available: Vec<String>,
-    current: Vec<String>,
-    progress: u8,
-    completed: Vec<String>,
+#[derive(Debug, Clone, Reflect)]
+pub enum Action {
+    Test,
 }
 
-fn read_input(
-    mut chars: EventReader<ReceivedCharacter>,
-    wordlists: Res<Assets<Wordlists>>,
-    handles: Res<Handles>,
-) {
-    chars.read().map(|event| event.char)
+#[derive(Resource, Default, Debug, Reflect)]
+#[reflect(Resource)]
+pub struct TypingState {
+    available: Vec<(String, Action)>,
+    current: Vec<(String, Action)>,
+    progress: usize,
+    completed: Vec<Action>,
+}
+
+fn read_input(mut chars: EventReader<ReceivedCharacter>, mut typing_state: ResMut<TypingState>) {
+    // For each character typed
+    chars.read().for_each(|event| {
+        // Get the actual character
+        let character = event.char.chars().next().unwrap();
+
+        match typing_state.current.is_empty() {
+            // If there are no words currently being typed
+            true => {
+                // Reset progress
+                typing_state.progress = 0;
+
+                // Add all words that start with the character to current
+                let to_transfer: Vec<_> = typing_state
+                    .available
+                    .iter()
+                    .filter(|&(word, _)| {
+                        // If the strings first character
+                        word.chars().next().unwrap() == character
+                    })
+                    .cloned()
+                    .collect();
+                typing_state.current.extend(to_transfer);
+            }
+            // If there are words currently being typed
+            false => {
+                // Increase progress
+                typing_state.progress += 1;
+
+                // Filter out words with non-matching characters, add completed words to completed
+                // and then filter them out
+                typing_state.current = typing_state
+                    .current
+                    .clone()
+                    .into_iter()
+                    .filter(|(word, action)| {
+                        if word.chars().nth(typing_state.progress).unwrap() != character {
+                            false
+                        } else if typing_state.progress >= word.len() {
+                            typing_state.completed.push(action.clone());
+                            false
+                        } else {
+                            true
+                        }
+                    })
+                    .collect();
+            }
+        }
+    })
 }
