@@ -1,3 +1,5 @@
+use std::io::{stdout, Write};
+
 use bevy::prelude::*;
 use serde::Deserialize;
 
@@ -6,7 +8,7 @@ pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TypingState>()
-            .add_systems(Update, read_input);
+            .add_systems(Update, (read_input, handle_completed.after(read_input)));
     }
 }
 
@@ -78,5 +80,13 @@ fn read_input(mut chars: EventReader<ReceivedCharacter>, mut typing_state: ResMu
                     .collect();
             }
         }
-    })
+    });
+}
+
+fn handle_completed(typing_state: Res<TypingState>) {
+    for action in &typing_state.completed {
+        match action {
+            Action::Test => {}
+        }
+    }
 }
