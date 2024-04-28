@@ -1,3 +1,5 @@
-/target
-/.vscode
-/workflow.txt
+target/
+.vscode/
+workflow.txt
+Cargo.lock
+deny.toml
