@@ -8,6 +8,8 @@ use crate::typing::Wordlists;
 pub struct Handles {
     #[asset(path = "all.words.json")]
     pub wordlists: Handle<Wordlists>,
+    #[asset(path = "level1.png")]
+    pub level1: Handle<Image>,
 }
 
 pub struct AssetLoaderPlugin;
