@@ -1,13 +1,6 @@
-use std::{
-    default,
-    io::{stdout, Write},
-};
-
-use bevy::{prelude::*, reflect::List};
+use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
-
-use crate::asset_loader::Handles;
 
 // Plugin
 pub struct TypingPlugin;
@@ -18,7 +11,6 @@ impl Plugin for TypingPlugin {
     }
 }
 
-// Dont know how to directly match against a Res<{some enum}>, so using a wrapper struct
 #[derive(Resource, Debug, Clone, Reflect, Default)]
 #[reflect(Resource)]
 // pub struct Language(Languages);
@@ -36,7 +28,7 @@ pub struct Wordlists {
 }
 impl Wordlists {
     /// Returns a random word from the inputted Language's wordlist
-    fn get_word(&self, language: &Language) -> String {
+    pub fn get_word(&self, language: &Language) -> String {
         match language {
             Language::English => {
                 self.english[thread_rng().gen_range(0..self.english.len())].clone()
@@ -59,7 +51,7 @@ pub struct ToType {
     pub action: Action,
 }
 impl ToType {
-    fn new(word: String, action: Action) -> Self {
+    pub const fn new(word: String, action: Action) -> Self {
         Self {
             word,
             progress: 0,
@@ -75,9 +67,10 @@ fn read_input(mut chars: EventReader<ReceivedCharacter>, mut query: Query<&mut T
         let character = event.char.chars().next().unwrap();
 
         for mut to_type in &mut query {
-            match to_type.word.chars().nth(to_type.progress) == Some(character) {
-                true => to_type.progress += 1,
-                false => to_type.progress = 0,
+            if to_type.word.chars().nth(to_type.progress) == Some(character) {
+                to_type.progress += 1
+            } else {
+                to_type.progress = 0
             }
         }
     });

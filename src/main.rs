@@ -9,6 +9,9 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 use camera::CameraPlugin;
 use fps::FpsPlugin;
 use map::MapPlugin;
+use oneshot::OneShotPlugin;
+use physics::PhysicsPlugin;
+use projectile::ProjectilePlugin;
 use tower::TowerPlugin;
 use typing::TypingPlugin;
 #[cfg(target_family = "wasm")]
@@ -52,6 +55,9 @@ fn main() {
         TypingPlugin,
         MapPlugin,
         TowerPlugin,
+        ProjectilePlugin,
+        OneShotPlugin,
+        PhysicsPlugin,
     ));
 
     app.run();

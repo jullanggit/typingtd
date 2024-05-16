@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::{Handles, SpritesLoadingStates},
+    physics::Position,
     tower::{Tower, TowerType},
 };
 
@@ -36,83 +37,44 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
 
     for x in 0..size.x {
         for y in 0..size.y {
-            let pixel_index = (y * level1_image.size().y + x) as usize * 4; // Assuming 4 bytes per pixel (RGBA)
+            let pixel_index = (y * level1_image.size().x + x) as usize * 4; // Assuming 4 bytes per pixel (RGBA)
             let rgba = &level1_image.data[pixel_index..pixel_index + 4];
+
+            let mut entity = commands.spawn((
+                SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgba_u8(rgba[0], rgba[1], rgba[2], rgba[3]),
+                        custom_size: Some(Vec2::splat(TILE_SIZE)),
+                        ..default()
+                    },
+                    ..default()
+                },
+                Position::new(Vec2::new(
+                    (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
+                    (y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
+                )),
+            ));
 
             match rgba {
                 [0, 0, 0, 255] => {
-                    commands.spawn((
+                    entity.insert((
                         Name::new("Way"),
-                        SpriteBundle {
-                            transform: Transform::from_xyz(
-                                (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
-                                (y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
-                                0.0,
-                            ),
-                            sprite: Sprite {
-                                color: Color::rgba(
-                                    rgba[0] as f32,
-                                    rgba[1] as f32,
-                                    rgba[2] as f32,
-                                    rgba[3] as f32,
-                                ),
-                                custom_size: Some(Vec2::splat(TILE_SIZE as f32)),
-                                ..default()
-                            },
-                            ..default()
-                        },
                         Tile {
                             tile_type: TileType::Way,
                         },
                     ));
                 }
                 [255, 255, 255, 255] => {
-                    commands.spawn((
+                    entity.insert((
                         Name::new("Grass"),
-                        SpriteBundle {
-                            transform: Transform::from_xyz(
-                                (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
-                                (y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
-                                0.0,
-                            ),
-                            sprite: Sprite {
-                                color: Color::rgba(
-                                    rgba[0] as f32,
-                                    rgba[1] as f32,
-                                    rgba[2] as f32,
-                                    rgba[3] as f32,
-                                ),
-                                custom_size: Some(Vec2::splat(TILE_SIZE as f32)),
-                                ..default()
-                            },
-                            ..default()
-                        },
                         Tile {
                             tile_type: TileType::Grass,
                         },
                     ));
                 }
                 [255, 0, 0, 255] => {
-                    commands.spawn((
+                    entity.insert((
                         Name::new("Fire Tower"),
-                        SpriteBundle {
-                            transform: Transform::from_xyz(
-                                (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
-                                (y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
-                                0.0,
-                            ),
-                            sprite: Sprite {
-                                color: Color::rgba(
-                                    rgba[0] as f32,
-                                    rgba[1] as f32,
-                                    rgba[2] as f32,
-                                    rgba[3] as f32,
-                                ),
-                                custom_size: Some(Vec2::splat(TILE_SIZE as f32)),
-                                ..default()
-                            },
-                            ..default()
-                        },
                         Tile {
                             tile_type: TileType::Tower,
                         },
@@ -121,7 +83,20 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
                         },
                     ));
                 }
-                other => {}
+                [111, 78, 55, 255] => {
+                    entity.insert((
+                        Name::new("Arrow Tower"),
+                        Tile {
+                            tile_type: TileType::Tower,
+                        },
+                        Tower {
+                            tower_type: TowerType::Arrow,
+                        },
+                    ));
+                }
+                other => {
+                    dbg!(other);
+                }
             };
         }
     }

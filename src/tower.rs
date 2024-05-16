@@ -1,19 +1,20 @@
-use std::cmp::Ordering;
-
 use bevy::prelude::*;
 
 use crate::{
-    enemy::{self, Enemy},
+    asset_loader::Handles,
+    enemy::Enemy,
     oneshot::OneShotSystems,
-    physics::{Position, Rotation},
-    projectile::Projectile,
-    typing::{Action, ToType},
+    physics::{Layer, Position, Rotation, Velocity},
+    projectile::{Projectile, PROJECTILE_SPEED},
+    typing::{Action, Language, ToType, Wordlists},
 };
 
 pub struct TowerPlugin;
 impl Plugin for TowerPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Tower>().register_type::<TowerType>();
+        app.register_type::<Tower>()
+            .register_type::<TowerType>()
+            .add_systems(Update, (handle_tower_actions, insert_tower_typing));
     }
 }
 
@@ -30,20 +31,44 @@ pub enum TowerType {
 }
 
 fn handle_tower_actions(
-    query: Query<(&Position, &ToType)>,
+    query: Query<(&Position, &ToType, Entity)>,
     mut commands: Commands,
     oneshot_systems: Res<OneShotSystems>,
 ) {
-    for (position, to_type) in &query {
+    for (position, to_type, entity) in &query {
         if to_type.progress >= to_type.word.len() {
             match to_type.action {
                 // TODO: make the arrow shoot in the direction of the nearest enemy
                 Action::ShootArrow => commands.run_system_with_input(
                     oneshot_systems.spawn_arrow,
-                    (*position, Projectile::new(100.0)),
+                    (*position, Projectile::new(PROJECTILE_SPEED)),
                 ),
             }
+            commands.entity(entity).remove::<ToType>();
         }
+    }
+}
+
+fn insert_tower_typing(
+    query: Query<(Entity, &Tower), Without<ToType>>,
+    mut commands: Commands,
+    wordlists: Res<Assets<Wordlists>>,
+    handles: Res<Handles>,
+    language: Res<Language>,
+) {
+    for (entity, tower) in &query {
+        let word = wordlists
+            .get(handles.wordlists.clone())
+            .unwrap()
+            .get_word(&language);
+        dbg!(&word);
+        commands.entity(entity).insert(ToType::new(
+            word,
+            match tower.tower_type {
+                TowerType::Arrow => Action::ShootArrow,
+                TowerType::Fire => Action::ShootArrow,
+            },
+        ));
     }
 }
 
@@ -63,13 +88,24 @@ pub fn spawn_arrow(
             closest_enemy_position = enemy_position.value;
         }
     }
-    let to_closest_enemy_position =
-        Quat::from_rotation_arc_2d(arrow_position.value, closest_enemy_position);
+
+    let direction = (closest_enemy_position - arrow_position.value).normalize();
+    let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
 
     commands.spawn((
+        Name::new("Arrow"),
         arrow_position,
-        Rotation::new(to_closest_enemy_position),
+        Rotation::new(direction_quat),
         projectile,
-        SpriteBundle::default(),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgba_u8(68, 47, 47, 255),
+                custom_size: Some(Vec2::new(90.0, 20.0)),
+                ..default()
+            },
+            ..default()
+        },
+        Velocity::default(),
+        Layer::new(1.0),
     ));
 }

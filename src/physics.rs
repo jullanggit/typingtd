@@ -5,8 +5,10 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Velocity>()
             .register_type::<Position>()
-            .register_type::<AABB>()
-            .add_systems(Update, (apply_rotation))
+            .register_type::<Aabb>()
+            .register_type::<Rotation>()
+            .register_type::<Layer>()
+            .add_systems(Update, (apply_rotation, apply_layer))
             .add_systems(Update, (apply_velocity, apply_position).chain());
     }
 }
@@ -52,10 +54,10 @@ impl Rotation {
 
 #[derive(Component, Default, Reflect, Debug, Clone)]
 #[reflect(Component)]
-pub struct AABB {
+pub struct Aabb {
     pub halfsize: Vec2,
 }
-impl AABB {
+impl Aabb {
     pub const fn new(halfsize: Vec2) -> Self {
         Self { halfsize }
     }
@@ -77,6 +79,17 @@ impl AABB {
     }
 }
 
+#[derive(Component, Default, Reflect, Debug, Clone)]
+#[reflect(Component)]
+pub struct Layer {
+    value: f32,
+}
+impl Layer {
+    pub const fn new(value: f32) -> Self {
+        Self { value }
+    }
+}
+
 fn apply_velocity(mut query: Query<(&mut Position, &Velocity)>, time: Res<Time>) {
     for (mut position, velocity) in &mut query {
         position.value += velocity.value * time.delta_seconds();
@@ -93,11 +106,16 @@ fn apply_rotation(mut query: Query<(&Rotation, &mut Transform)>) {
         transform.rotation = rotation.value;
     }
 }
+fn apply_layer(mut query: Query<(&Layer, &mut Transform)>) {
+    for (layer, mut transform) in &mut query {
+        transform.translation.z = layer.value;
+    }
+}
 
 pub fn penetration_depth(
-    a_aabb: &AABB,
+    a_aabb: &Aabb,
     a_pos: Position,
-    b_aabb: &AABB,
+    b_aabb: &Aabb,
     b_pos: Position,
 ) -> Option<Vec2> {
     if collides(a_aabb, a_pos, b_aabb, b_pos) {
@@ -120,7 +138,7 @@ pub fn penetration_depth(
     None
 }
 
-pub fn collides(a_aabb: &AABB, a_pos: Position, b_aabb: &AABB, b_pos: Position) -> bool {
+pub fn collides(a_aabb: &Aabb, a_pos: Position, b_aabb: &Aabb, b_pos: Position) -> bool {
     let a_pos = a_pos.value;
     let b_pos = b_pos.value;
 
@@ -130,7 +148,7 @@ pub fn collides(a_aabb: &AABB, a_pos: Position, b_aabb: &AABB, b_pos: Position) 
         && (a_pos.y - a_aabb.halfsize.y) < (b_pos.y + b_aabb.halfsize.y)
 }
 
-pub fn intersects(a_aabb: &AABB, a_pos: Position, b_pos: Position) -> bool {
+pub fn intersects(a_aabb: &Aabb, a_pos: Position, b_pos: Position) -> bool {
     let a_pos = a_pos.value;
     let b_pos = b_pos.value;
 
