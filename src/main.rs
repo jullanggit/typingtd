@@ -9,14 +9,20 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 use camera::CameraPlugin;
 use fps::FpsPlugin;
 use map::MapPlugin;
+use tower::TowerPlugin;
 use typing::TypingPlugin;
 #[cfg(target_family = "wasm")]
 use wasm::WasmPlugin;
 
 mod asset_loader;
 mod camera;
+mod enemy;
 mod fps;
 mod map;
+mod oneshot;
+mod physics;
+mod projectile;
+mod tower;
 mod typing;
 #[cfg(target_family = "wasm")]
 mod wasm;
@@ -40,7 +46,13 @@ fn main() {
     app.add_plugins(WasmPlugin);
 
     // game plugins
-    app.add_plugins((CameraPlugin, AssetLoaderPlugin, TypingPlugin, MapPlugin));
+    app.add_plugins((
+        CameraPlugin,
+        AssetLoaderPlugin,
+        TypingPlugin,
+        MapPlugin,
+        TowerPlugin,
+    ));
 
     app.run();
 }

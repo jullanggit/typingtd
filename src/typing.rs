@@ -1,92 +1,84 @@
-use std::io::{stdout, Write};
+use std::{
+    default,
+    io::{stdout, Write},
+};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::List};
+use rand::{thread_rng, Rng};
 use serde::Deserialize;
+
+use crate::asset_loader::Handles;
 
 // Plugin
 pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<TypingState>()
-            .add_systems(Update, (read_input, handle_completed.after(read_input)));
+        app.init_resource::<Language>()
+            .add_systems(Update, (read_input));
     }
+}
+
+// Dont know how to directly match against a Res<{some enum}>, so using a wrapper struct
+#[derive(Resource, Debug, Clone, Reflect, Default)]
+#[reflect(Resource)]
+// pub struct Language(Languages);
+// #[derive(Debug, Clone, Reflect, Default)]
+pub enum Language {
+    #[default]
+    English,
+    German,
 }
 
 #[derive(Default, Deserialize, Asset, Debug, TypePath)]
 pub struct Wordlists {
-    deutsch: Vec<String>,
+    german: Vec<String>,
     english: Vec<String>,
+}
+impl Wordlists {
+    /// Returns a random word from the inputted Language's wordlist
+    fn get_word(&self, language: &Language) -> String {
+        match language {
+            Language::English => {
+                self.english[thread_rng().gen_range(0..self.english.len())].clone()
+            }
+            Language::German => self.german[thread_rng().gen_range(0..self.german.len())].clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
-    Test,
+    ShootArrow,
 }
 
-#[derive(Resource, Default, Debug, Reflect)]
-#[reflect(Resource)]
-pub struct TypingState {
-    available: Vec<(String, Action)>,
-    current: Vec<(String, Action)>,
-    progress: usize,
-    completed: Vec<Action>,
+#[derive(Component, Debug, Reflect)]
+#[reflect(Component)]
+pub struct ToType {
+    pub word: String,
+    pub progress: usize,
+    pub action: Action,
+}
+impl ToType {
+    fn new(word: String, action: Action) -> Self {
+        Self {
+            word,
+            progress: 0,
+            action,
+        }
+    }
 }
 
-fn read_input(mut chars: EventReader<ReceivedCharacter>, mut typing_state: ResMut<TypingState>) {
+fn read_input(mut chars: EventReader<ReceivedCharacter>, mut query: Query<&mut ToType>) {
     // For each character typed
     chars.read().for_each(|event| {
         // Get the actual character
         let character = event.char.chars().next().unwrap();
 
-        match typing_state.current.is_empty() {
-            // If there are no words currently being typed
-            true => {
-                // Reset progress
-                typing_state.progress = 0;
-
-                // Add all words that start with the character to current
-                let to_transfer: Vec<_> = typing_state
-                    .available
-                    .iter()
-                    .filter(|&(word, _)| {
-                        // If the strings first character
-                        word.chars().next().unwrap() == character
-                    })
-                    .cloned()
-                    .collect();
-                typing_state.current.extend(to_transfer);
-            }
-            // If there are words currently being typed
-            false => {
-                // Increase progress
-                typing_state.progress += 1;
-
-                // Filter out words with non-matching characters, add completed words to completed
-                // and then filter them out
-                typing_state.current = typing_state
-                    .current
-                    .clone()
-                    .into_iter()
-                    .filter(|(word, action)| {
-                        if word.chars().nth(typing_state.progress).unwrap() != character {
-                            false
-                        } else if typing_state.progress >= word.len() {
-                            typing_state.completed.push(action.clone());
-                            false
-                        } else {
-                            true
-                        }
-                    })
-                    .collect();
+        for mut to_type in &mut query {
+            match to_type.word.chars().nth(to_type.progress) == Some(character) {
+                true => to_type.progress += 1,
+                false => to_type.progress = 0,
             }
         }
     });
-}
-
-fn handle_completed(typing_state: Res<TypingState>) {
-    for action in &typing_state.completed {
-        match action {
-            Action::Test => {}
-        }
-    }
 }
