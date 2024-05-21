@@ -90,7 +90,7 @@ impl Layer {
     }
 }
 
-fn apply_velocity(mut query: Query<(&mut Position, &Velocity)>, time: Res<Time>) {
+pub fn apply_velocity(mut query: Query<(&mut Position, &Velocity)>, time: Res<Time>) {
     for (mut position, velocity) in &mut query {
         position.value += velocity.value * time.delta_seconds();
     }

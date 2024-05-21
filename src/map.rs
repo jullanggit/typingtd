@@ -30,13 +30,6 @@ enum TileType {
     Tower,
 }
 
-// pub fn to_rgba_index<T: TryInto<usize>>(
-//     x: T,
-//     y: T,
-//     width: T,
-// ) -> Result<usize, Box<dyn std::error::Error>> {
-//     (y.try_into()? * width.try_into()? + x.try_into()?) * 4
-// }
 pub fn to_rgba_index(x: u32, y: u32, width: u32) -> u32 {
     (y * width + x) * 4
 }
@@ -60,10 +53,7 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
                     },
                     ..default()
                 },
-                Position::new(Vec2::new(
-                    (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
-                    (y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
-                )),
+                Position::new(to_world(x, y, size)),
             ));
 
             match rgba {
@@ -111,4 +101,11 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
             };
         }
     }
+}
+
+pub fn to_world(x: u32, y: u32, size: UVec2) -> Vec2 {
+    Vec2::new(
+        (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
+        -(y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
+    )
 }

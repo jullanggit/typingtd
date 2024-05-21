@@ -9,6 +9,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use asset_loader::AssetLoaderPlugin;
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use camera::CameraPlugin;
+use enemy::EnemyPlugin;
 use fps::FpsPlugin;
 use map::MapPlugin;
 use oneshot::OneShotPlugin;
@@ -60,6 +61,7 @@ fn main() {
         ProjectilePlugin,
         OneShotPlugin,
         PhysicsPlugin,
+        EnemyPlugin,
     ));
 
     app.run();
