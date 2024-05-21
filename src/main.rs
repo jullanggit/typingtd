@@ -1,5 +1,7 @@
+#![feature(let_chains)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::needless_pass_by_value)]
 // Conditionally compile the import for development builds only.
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;

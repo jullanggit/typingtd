@@ -6,7 +6,7 @@ use crate::{
     tower::{Tower, TowerType},
 };
 
-const TILE_SIZE: f32 = 32.0;
+pub const TILE_SIZE: f32 = 32.0;
 
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
@@ -30,6 +30,17 @@ enum TileType {
     Tower,
 }
 
+// pub fn to_rgba_index<T: TryInto<usize>>(
+//     x: T,
+//     y: T,
+//     width: T,
+// ) -> Result<usize, Box<dyn std::error::Error>> {
+//     (y.try_into()? * width.try_into()? + x.try_into()?) * 4
+// }
+pub fn to_rgba_index(x: u32, y: u32, width: u32) -> u32 {
+    (y * width + x) * 4
+}
+
 pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Assets<Image>>) {
     // loading image and getting image size
     let level1_image = images.get(&handles.level1).unwrap();
@@ -37,7 +48,7 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
 
     for x in 0..size.x {
         for y in 0..size.y {
-            let pixel_index = (y * level1_image.size().x + x) as usize * 4; // Assuming 4 bytes per pixel (RGBA)
+            let pixel_index = to_rgba_index(x, y, size.x) as usize;
             let rgba = &level1_image.data[pixel_index..pixel_index + 4];
 
             let mut entity = commands.spawn((
@@ -72,17 +83,17 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
                         },
                     ));
                 }
-                [255, 0, 0, 255] => {
-                    entity.insert((
-                        Name::new("Fire Tower"),
-                        Tile {
-                            tile_type: TileType::Tower,
-                        },
-                        Tower {
-                            tower_type: TowerType::Fire,
-                        },
-                    ));
-                }
+                // [255, 0, 0, 255] => {
+                //     entity.insert((
+                //         Name::new("Fire Tower"),
+                //         Tile {
+                //             tile_type: TileType::Tower,
+                //         },
+                //         Tower {
+                //             tower_type: TowerType::Fire,
+                //         },
+                //     ));
+                // }
                 [111, 78, 55, 255] => {
                     entity.insert((
                         Name::new("Arrow Tower"),

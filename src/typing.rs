@@ -68,9 +68,9 @@ fn read_input(mut chars: EventReader<ReceivedCharacter>, mut query: Query<&mut T
 
         for mut to_type in &mut query {
             if to_type.word.chars().nth(to_type.progress) == Some(character) {
-                to_type.progress += 1
+                to_type.progress += 1;
             } else {
-                to_type.progress = 0
+                to_type.progress = 0;
             }
         }
     });
