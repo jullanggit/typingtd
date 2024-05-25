@@ -1,6 +1,6 @@
 use bevy::{ecs::system::SystemId, prelude::*};
 
-use crate::{physics::Position, projectile::Projectile, tower::spawn_arrow};
+use crate::{enemy::spawn_enemy, physics::Position, projectile::spawn_arrow, projectile::Speed};
 
 pub struct OneShotPlugin;
 impl Plugin for OneShotPlugin {
@@ -11,12 +11,14 @@ impl Plugin for OneShotPlugin {
 
 #[derive(Resource, Debug, Clone)]
 pub struct OneShotSystems {
-    pub spawn_arrow: SystemId<(Position, Projectile)>,
+    pub spawn_arrow: SystemId<(Position, Speed)>,
+    pub spawn_enemy: SystemId<f64>,
 }
 impl FromWorld for OneShotSystems {
     fn from_world(world: &mut World) -> Self {
         Self {
             spawn_arrow: world.register_system(spawn_arrow),
+            spawn_enemy: world.register_system(spawn_enemy),
         }
     }
 }

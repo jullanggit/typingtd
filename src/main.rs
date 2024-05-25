@@ -1,7 +1,9 @@
 #![feature(let_chains)]
+#![feature(slice_flatten)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::type_complexity)]
 // Conditionally compile the import for development builds only.
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -13,6 +15,7 @@ use enemy::EnemyPlugin;
 use fps::FpsPlugin;
 use map::MapPlugin;
 use oneshot::OneShotPlugin;
+use path::PathPlugin;
 use physics::PhysicsPlugin;
 use projectile::ProjectilePlugin;
 use tower::TowerPlugin;
@@ -22,10 +25,12 @@ use wasm::WasmPlugin;
 
 mod asset_loader;
 mod camera;
+mod directors;
 mod enemy;
 mod fps;
 mod map;
 mod oneshot;
+mod path;
 mod physics;
 mod projectile;
 mod tower;
@@ -44,8 +49,8 @@ fn main() {
     // debug builds
     #[cfg(debug_assertions)]
     app.add_plugins(WorldInspectorPlugin::default());
-    #[cfg(debug_assertions)]
-    app.add_plugins(FpsPlugin);
+    // #[cfg(debug_assertions)]
+    // app.add_plugins(FpsPlugin);
 
     // wasm stuff
     #[cfg(target_family = "wasm")]
@@ -61,6 +66,7 @@ fn main() {
         ProjectilePlugin,
         OneShotPlugin,
         PhysicsPlugin,
+        PathPlugin,
         EnemyPlugin,
     ));
 

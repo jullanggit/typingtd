@@ -30,13 +30,13 @@ enum TileType {
     Tower,
 }
 
-pub fn to_rgba_index(x: u32, y: u32, width: u32) -> u32 {
+pub const fn to_rgba_index(x: u32, y: u32, width: u32) -> u32 {
     (y * width + x) * 4
 }
 
 pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Assets<Image>>) {
     // loading image and getting image size
-    let level1_image = images.get(&handles.level1).unwrap();
+    let level1_image = images.get(&handles.level1).expect("Image should be loaded");
     let size = level1_image.size();
 
     for x in 0..size.x {

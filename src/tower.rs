@@ -2,10 +2,9 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::Handles,
-    enemy::Enemy,
     oneshot::OneShotSystems,
-    physics::{Layer, Position, Rotation, Velocity},
-    projectile::{Projectile, PROJECTILE_SPEED},
+    physics::Position,
+    projectile::{Speed, PROJECTILE_SPEED},
     typing::{Action, Language, ToType, Wordlists},
 };
 
@@ -41,7 +40,7 @@ fn handle_tower_actions(
                 // TODO: make the arrow shoot in the direction of the nearest enemy
                 Action::ShootArrow => commands.run_system_with_input(
                     oneshot_systems.spawn_arrow,
-                    (*position, Projectile::new(PROJECTILE_SPEED)),
+                    (*position, Speed::new(PROJECTILE_SPEED)),
                 ),
             }
             commands.entity(entity).remove::<ToType>();
@@ -50,16 +49,16 @@ fn handle_tower_actions(
 }
 
 fn insert_tower_typing(
-    query: Query<(Entity, &Tower), Without<ToType>>,
+    towers: Query<(Entity, &Tower), Without<ToType>>,
     mut commands: Commands,
     wordlists: Res<Assets<Wordlists>>,
     handles: Res<Handles>,
     language: Res<Language>,
 ) {
-    for (entity, tower) in &query {
+    for (entity, tower) in &towers {
         let word = wordlists
             .get(handles.wordlists.clone())
-            .unwrap()
+            .expect("Wordlists should be loaded")
             .get_word(&language);
         dbg!(&word);
         commands.entity(entity).insert(ToType::new(
@@ -70,42 +69,4 @@ fn insert_tower_typing(
             },
         ));
     }
-}
-
-// Arrow Tower
-/// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
-pub fn spawn_arrow(
-    In((arrow_position, projectile)): In<(Position, Projectile)>,
-    query: Query<(&Position), With<Enemy>>,
-    mut commands: Commands,
-) {
-    let mut min_distance = f32::MAX;
-    let mut closest_enemy_position = Vec2::ZERO;
-    for enemy_position in &query {
-        let distance = arrow_position.value.distance(enemy_position.value);
-        if distance < min_distance {
-            min_distance = distance;
-            closest_enemy_position = enemy_position.value;
-        }
-    }
-
-    let direction = (closest_enemy_position - arrow_position.value).normalize();
-    let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
-
-    commands.spawn((
-        Name::new("Arrow"),
-        arrow_position,
-        Rotation::new(direction_quat),
-        projectile,
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgba_u8(68, 47, 47, 255),
-                custom_size: Some(Vec2::new(90.0, 20.0)),
-                ..default()
-            },
-            ..default()
-        },
-        Velocity::default(),
-        Layer::new(1.0),
-    ));
 }

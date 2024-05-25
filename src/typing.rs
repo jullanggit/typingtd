@@ -7,7 +7,7 @@ pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Language>()
-            .add_systems(Update, (read_input));
+            .add_systems(Update, read_input);
     }
 }
 
@@ -60,13 +60,17 @@ impl ToType {
     }
 }
 
-fn read_input(mut chars: EventReader<ReceivedCharacter>, mut query: Query<&mut ToType>) {
+fn read_input(mut chars: EventReader<ReceivedCharacter>, mut to_types: Query<&mut ToType>) {
     // For each character typed
     chars.read().for_each(|event| {
         // Get the actual character
-        let character = event.char.chars().next().unwrap();
+        let character = event
+            .char
+            .chars()
+            .next()
+            .expect("Character should exist if there is an event for it");
 
-        for mut to_type in &mut query {
+        for mut to_type in &mut to_types {
             if to_type.word.chars().nth(to_type.progress) == Some(character) {
                 to_type.progress += 1;
             } else {
