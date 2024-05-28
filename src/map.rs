@@ -105,7 +105,7 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
 
 pub fn to_world(x: u32, y: u32, size: UVec2) -> Vec2 {
     Vec2::new(
-        (x as f32 - size.x as f32 / 2.0) * TILE_SIZE,
-        -(y as f32 - size.y as f32 / 2.0) * TILE_SIZE,
+        (x as f32 - size.x as f32 / 2.0 + 0.5) * TILE_SIZE,
+        -(y as f32 - size.y as f32 / 2.0 + 0.5) * TILE_SIZE,
     )
 }

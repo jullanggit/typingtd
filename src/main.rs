@@ -11,8 +11,8 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use asset_loader::AssetLoaderPlugin;
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use camera::CameraPlugin;
+use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
-use fps::FpsPlugin;
 use map::MapPlugin;
 use oneshot::OneShotPlugin;
 use path::PathPlugin;
@@ -68,6 +68,7 @@ fn main() {
         PhysicsPlugin,
         PathPlugin,
         EnemyPlugin,
+        DirectorPlugin,
     ));
 
     app.run();

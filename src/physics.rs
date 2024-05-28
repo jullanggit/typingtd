@@ -121,7 +121,7 @@ pub fn apply_velocity(mut query: Query<(&mut Position, &Velocity)>, time: Res<Ti
         position.value += velocity.value * time.delta_seconds();
     }
 }
-fn apply_position(mut query: Query<(&Position, &mut Transform)>) {
+pub fn apply_position(mut query: Query<(&Position, &mut Transform)>) {
     for (position, mut transform) in &mut query {
         transform.translation.x = position.value.x;
         transform.translation.y = position.value.y;

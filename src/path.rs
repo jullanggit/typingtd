@@ -80,18 +80,21 @@ fn follow_path(
         return;
     }
     for (mut path_state, speed, mut velocity, mut position) in &mut enemies {
-        let direction = to_0_or_1(path.parts[path_state.index] - path.parts[path_state.index - 1]);
-        let remaining = path.parts[path_state.index] - position.value;
+        if path_state.index < path.parts.len() - 1 {
+            let direction =
+                to_0_or_1(path.parts[path_state.index] - path.parts[path_state.index - 1]);
+            let remaining = path.parts[path_state.index] - position.value;
 
-        let mult = to_0_or_1(remaining) * direction;
-        if mult.x == -1.0 || mult.y == -1.0 {
-            position.value = path.parts[path_state.index];
-            path_state.index += 1;
+            let mult = to_0_or_1(remaining) * direction;
+            if mult.x == -1.0 || mult.y == -1.0 {
+                position.value = path.parts[path_state.index];
+                path_state.index += 1;
 
-            // Recompute the direction, because of the index change
-            velocity.value =
-                to_0_or_1(path.parts[path_state.index] - path.parts[path_state.index - 1])
-                    * speed.value;
+                // Recompute the direction, because of the index change
+                velocity.value =
+                    to_0_or_1(path.parts[path_state.index] - path.parts[path_state.index - 1])
+                        * speed.value;
+            }
         }
     }
 }
