@@ -17,7 +17,14 @@ impl Plugin for EnemyPlugin {
         app.register_type::<Health>()
             .register_type::<Enemy>()
             .register_type::<Attack>()
-            .add_systems(Update, (apply_damage, despawn_enemies).chain());
+            .add_systems(
+                Update,
+                (
+                    apply_damage,
+                    despawn_enemies.after(apply_damage),
+                    despawn_far_entities,
+                ),
+            );
     }
 }
 
@@ -128,18 +135,27 @@ fn despawn_enemies(mut commands: Commands, enemies: Query<(&Health, Entity), Wit
 }
 
 fn despawn_far_entities(
-    entities: Query<(Entity, Option<(&Obb, &Position, &Rotation)>)>,
+    entities: Query<(Entity, &Position, Option<(&Obb, &Rotation)>)>,
     camera: Query<&OrthographicProjection>,
     mut commands: Commands,
 ) {
+    // Get the obb of the screen (camera) (with some lenience)
     let camera_area = camera.single().area;
-    let camera_obb = Obb::new(Vec2::new(camera_area.width()/2.0, camera_area.height()/2.0));
-    for (entity, optional_stuff) in &entities {
+    let camera_obb = Obb::new(Vec2::new(
+        camera_area.width() / 2.0 + TILE_SIZE,
+        camera_area.height() / 2.0 + TILE_SIZE,
+    ));
+
+    for (entity, position, optional_stuff) in &entities {
         let not_in_window = match optional_stuff {
-            Some((obb, position, rotation)) => {
-                if obb.collides(position, rotation, other_obb, other_center, other_rotation)
-            }
-            None => {}
+            Some((obb, rotation)) => !obb.collides(
+                *position,
+                rotation,
+                &camera_obb,
+                Position::new(Vec2::ZERO),
+                &Rotation::new(Quat::IDENTITY),
+            ),
+            None => camera_obb.collides_point(Position::new(Vec2::ZERO), *position),
         };
 
         if not_in_window {

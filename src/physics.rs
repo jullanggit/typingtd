@@ -82,6 +82,15 @@ impl Obb {
             .iter()
             .any(|&axis| !self.overlap_on_axis(axis, center_delta, other_obb, axes))
     }
+    pub fn collides_point(&self, self_pos: Position, other_pos: Position) -> bool {
+        let self_pos = self_pos.value;
+        let other_pos = other_pos.value;
+
+        (self_pos.x - self.half_extents.x) < other_pos.x
+            && (self_pos.x + self.half_extents.x) > other_pos.x
+            && (self_pos.y + self.half_extents.y) > other_pos.y
+            && (self_pos.y - self.half_extents.y) < other_pos.y
+    }
     fn overlap_on_axis(
         &self,
         axis: Vec2,
