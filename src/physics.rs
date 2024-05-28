@@ -82,14 +82,21 @@ impl Obb {
             .iter()
             .any(|&axis| !self.overlap_on_axis(axis, center_delta, other_obb, axes))
     }
-    pub fn collides_point(&self, self_pos: Position, other_pos: Position) -> bool {
-        let self_pos = self_pos.value;
-        let other_pos = other_pos.value;
+    pub fn collides_point(
+        &self,
+        self_center: Position,
+        self_rotation: &Rotation,
+        point: Position,
+    ) -> bool {
+        let local_axes = self_rotation.compute_axes();
+        let local_point = point.value - self_center.value;
 
-        (self_pos.x - self.half_extents.x) < other_pos.x
-            && (self_pos.x + self.half_extents.x) > other_pos.x
-            && (self_pos.y + self.half_extents.y) > other_pos.y
-            && (self_pos.y - self.half_extents.y) < other_pos.y
+        // Transform the point into the OBB's local space
+        let local_x = local_point.dot(local_axes[0]);
+        let local_y = local_point.dot(local_axes[1]);
+
+        // Check if the point is within the OBB's extents
+        local_x.abs() <= self.half_extents.x && local_y.abs() <= self.half_extents.y
     }
     fn overlap_on_axis(
         &self,

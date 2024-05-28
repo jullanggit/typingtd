@@ -4,6 +4,10 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::needless_pass_by_value)]
 #![allow(clippy::type_complexity)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::float_cmp)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_possible_truncation)]
 // Conditionally compile the import for development builds only.
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;

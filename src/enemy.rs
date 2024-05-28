@@ -139,27 +139,37 @@ fn despawn_far_entities(
     camera: Query<&OrthographicProjection>,
     mut commands: Commands,
 ) {
-    // Get the obb of the screen (camera) (with some lenience)
-    let camera_area = camera.single().area;
-    let camera_obb = Obb::new(Vec2::new(
-        camera_area.width() / 2.0 + TILE_SIZE,
-        camera_area.height() / 2.0 + TILE_SIZE,
-    ));
+    if let Ok(camera) = camera.get_single() {
+        // Fix camera area not being set correctly for one frame after creation
+        if camera.area.width() == 2.0 && camera.area.height() == 2.0 {
+            return;
+        }
+        // Get the obb of the screen (camera) (with some lenience)
+        let camera_obb = Obb::new(Vec2::new(
+            camera.area.width() / 2.0 + TILE_SIZE,
+            camera.area.height() / 2.0 + TILE_SIZE,
+        ));
 
-    for (entity, position, optional_stuff) in &entities {
-        let not_in_window = match optional_stuff {
-            Some((obb, rotation)) => !obb.collides(
-                *position,
-                rotation,
-                &camera_obb,
-                Position::new(Vec2::ZERO),
-                &Rotation::new(Quat::IDENTITY),
-            ),
-            None => camera_obb.collides_point(Position::new(Vec2::ZERO), *position),
-        };
+        // For every entity, check if it is off screen, despawn it if so
+        for (entity, position, optional_stuff) in &entities {
+            let in_window = match optional_stuff {
+                Some((obb, rotation)) => obb.collides(
+                    *position,
+                    rotation,
+                    &camera_obb,
+                    Position::new(Vec2::ZERO),
+                    &Rotation::new(Quat::IDENTITY),
+                ),
+                None => camera_obb.collides_point(
+                    Position::new(Vec2::ZERO),
+                    &Rotation::new(Quat::IDENTITY),
+                    *position,
+                ),
+            };
 
-        if not_in_window {
-            commands.entity(entity).despawn()
+            if !in_window {
+                commands.entity(entity).despawn();
+            }
         }
     }
 }
