@@ -126,6 +126,7 @@ pub fn add_to_type(
     dbg!(&word);
     commands.entity(entity).with_children(|parent| {
         parent.spawn((
+            Name::new("Text"),
             Text2dBundle {
                 text: Text {
                     sections: vec![
@@ -141,7 +142,7 @@ pub fn add_to_type(
                             value: word.clone(),
                             style: TextStyle {
                                 font_size: 20.,
-                                color: Color::GRAY,
+                                color: Color::rgb_u8(174, 137, 0),
                                 ..default()
                             },
                         },
