@@ -86,7 +86,7 @@ fn follow_path(
             let remaining = path.parts[path_state.index] - position.value;
 
             let mult = to_0_or_1(remaining) * direction;
-            if mult.x == -1.0 || mult.y == -1.0 {
+            if mult.x == -1. || mult.y == -1. {
                 position.value = path.parts[path_state.index];
                 path_state.index += 1;
 
@@ -182,10 +182,10 @@ fn find_next_index(
 }
 
 pub fn to_0_or_1(mut vec2: Vec2) -> Vec2 {
-    if vec2.x != 0.0 {
+    if vec2.x != 0. {
         vec2.x /= vec2.x.abs();
     }
-    if vec2.y != 0.0 {
+    if vec2.y != 0. {
         vec2.y /= vec2.y.abs();
     }
     vec2

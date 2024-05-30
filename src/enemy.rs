@@ -9,7 +9,7 @@ use crate::{
     projectile::Speed,
 };
 
-pub const ENEMY_SPEED: f32 = 50.0;
+pub const ENEMY_SPEED: f32 = 50.;
 
 pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
@@ -44,14 +44,14 @@ impl Enemy {
     }
     pub const fn cost(&self) -> f64 {
         match self {
-            Self::Base => 1.0,
-            Self::Chunky => 2.0,
+            Self::Base => 1.,
+            Self::Chunky => 2.,
         }
     }
     pub const fn health(&self) -> f64 {
         match self {
-            Self::Base => 1.0,
-            Self::Chunky => 3.0,
+            Self::Base => 1.,
+            Self::Chunky => 3.,
         }
     }
 }
@@ -114,9 +114,9 @@ pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Pat
             },
             ..default()
         },
-        Position::new(path.parts[0] - 2.0 * to_0_or_1(path.parts[1] - path.parts[0]) * TILE_SIZE),
+        Position::new(path.parts[0] - 2. * to_0_or_1(path.parts[1] - path.parts[0]) * TILE_SIZE),
         Velocity::new(to_0_or_1(path.parts[1] - path.parts[0]) * ENEMY_SPEED),
-        Layer::new(3.0),
+        Layer::new(3.),
         Health::new(variant.health()),
         variant,
         Speed::new(ENEMY_SPEED),
@@ -128,7 +128,7 @@ pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Pat
 
 fn despawn_enemies(mut commands: Commands, enemies: Query<(&Health, Entity), With<Enemy>>) {
     for (health, entity) in &enemies {
-        if health.current < 0.0 {
+        if health.current < 0. {
             commands.entity(entity).despawn();
         }
     }
@@ -141,13 +141,13 @@ fn despawn_far_entities(
 ) {
     if let Ok(camera) = camera.get_single() {
         // Fix camera area not being set correctly for one frame after creation
-        if camera.area.width() == 2.0 && camera.area.height() == 2.0 {
+        if camera.area.width() == 2. && camera.area.height() == 2. {
             return;
         }
         // Get the obb of the screen (camera) (with some lenience)
         let camera_obb = Obb::new(Vec2::new(
-            camera.area.width() / 2.0 + TILE_SIZE,
-            camera.area.height() / 2.0 + TILE_SIZE,
+            camera.area.width() / 2. + TILE_SIZE,
+            camera.area.height() / 2. + TILE_SIZE,
         ));
 
         // For every entity, check if it is off screen, despawn it if so

@@ -5,6 +5,7 @@ use crate::{
     physics::Position,
     projectile::spawn_arrow,
     projectile::Speed,
+    typing::{add_to_type, Action},
 };
 
 pub struct OneShotPlugin;
@@ -18,12 +19,14 @@ impl Plugin for OneShotPlugin {
 pub struct OneShotSystems {
     pub spawn_arrow: SystemId<(Position, Speed)>,
     pub spawn_enemy: SystemId<Enemy>,
+    pub add_to_type: SystemId<(Entity, Action)>,
 }
 impl FromWorld for OneShotSystems {
     fn from_world(world: &mut World) -> Self {
         Self {
             spawn_arrow: world.register_system(spawn_arrow),
             spawn_enemy: world.register_system(spawn_enemy),
+            add_to_type: world.register_system(add_to_type),
         }
     }
 }

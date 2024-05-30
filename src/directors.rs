@@ -24,8 +24,8 @@ struct Director {
 impl Default for Director {
     fn default() -> Self {
         Self {
-            credits: 0.0,
-            credit_rate: 1.0,
+            credits: 0.,
+            credit_rate: 1.,
         }
     }
 }
@@ -42,8 +42,8 @@ impl Difficulty {
     const fn multiplier(&self) -> f64 {
         match self {
             Self::Easy => 0.5,
-            Self::Normal => 1.0,
-            Self::Hard => 2.0,
+            Self::Normal => 1.,
+            Self::Hard => 2.,
         }
     }
 }
