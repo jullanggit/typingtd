@@ -1,5 +1,5 @@
-use bevy::{prelude::*, window::PrimaryWindow};
-use web_sys::wasm_bindgen::JsCast;
+use bevy::prelude::*;
+use web_sys::{wasm_bindgen::JsCast, HtmlCanvasElement};
 // Plugin
 pub struct WasmPlugin;
 impl Plugin for WasmPlugin {
@@ -9,15 +9,15 @@ impl Plugin for WasmPlugin {
 }
 
 fn fit_canvas_to_parent() {
-    let canvas: web_sys::HtmlCanvasElement = web_sys::window()
-        .unwrap()
+    let canvas: HtmlCanvasElement = web_sys::window()
+        .expect("Window should exist")
         .document()
-        .unwrap()
+        .expect("Window should have document field")
         .query_selector("canvas")
-        .unwrap()
-        .unwrap()
+        .expect("Document filed should have canvas")
+        .expect("Document filed should have canvas")
         .unchecked_into();
     let style = canvas.style();
-    style.set_property("width", "100%").unwrap();
-    style.set_property("height", "100%").unwrap();
+    let _ = style.set_property("width", "100%");
+    let _ = style.set_property("height", "100%");
 }

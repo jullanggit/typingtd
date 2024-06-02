@@ -8,12 +8,14 @@
 #![allow(clippy::float_cmp)]
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::cast_possible_truncation)]
-// Conditionally compile the import for development builds only.
-#[cfg(debug_assertions)]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+
+#[cfg(not(target_family = "wasm"))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use asset_loader::AssetLoaderPlugin;
 use bevy::{asset::AssetMetaCheck, prelude::*};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraPlugin;
 use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
@@ -24,7 +26,6 @@ use physics::PhysicsPlugin;
 use projectile::ProjectilePlugin;
 use tower::TowerPlugin;
 use typing::TypingPlugin;
-#[cfg(target_family = "wasm")]
 use wasm::WasmPlugin;
 
 mod asset_loader;
@@ -39,41 +40,50 @@ mod physics;
 mod projectile;
 mod tower;
 mod typing;
-#[cfg(target_family = "wasm")]
 mod wasm;
 
 fn main() {
-    let mut app = App::new();
-    // disable checking for .meta files
-    app.insert_resource(AssetMetaCheck::Never);
+    App::new()
+        // disable checking for .meta files
+        .insert_resource(AssetMetaCheck::Never)
+        .add_plugins(DefaultPlugins)
+        .add_debug_plugin(WorldInspectorPlugin::default())
+        // app.add_debug_plugin(FpsPlugin)
+        .add_wasm_plugin(WasmPlugin)
+        // game plugins
+        .add_plugins((
+            CameraPlugin,
+            AssetLoaderPlugin,
+            TypingPlugin,
+            MapPlugin,
+            TowerPlugin,
+            ProjectilePlugin,
+            OneShotPlugin,
+            PhysicsPlugin,
+            PathPlugin,
+            EnemyPlugin,
+            DirectorPlugin,
+        ))
+        .run();
+}
 
-    // built-in plugins
-    app.add_plugins(DefaultPlugins);
+trait DebugPlugin {
+    fn add_debug_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self;
+}
+impl DebugPlugin for App {
+    fn add_debug_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {
+        #[cfg(debug_assertions)]
+        self.add_plugins(plugin)
+    }
+}
 
-    // debug builds
-    #[cfg(debug_assertions)]
-    app.add_plugins(WorldInspectorPlugin::default());
-    // #[cfg(debug_assertions)]
-    // app.add_plugins(FpsPlugin);
-
-    // wasm stuff
-    #[cfg(target_family = "wasm")]
-    app.add_plugins(WasmPlugin);
-
-    // game plugins
-    app.add_plugins((
-        CameraPlugin,
-        AssetLoaderPlugin,
-        TypingPlugin,
-        MapPlugin,
-        TowerPlugin,
-        ProjectilePlugin,
-        OneShotPlugin,
-        PhysicsPlugin,
-        PathPlugin,
-        EnemyPlugin,
-        DirectorPlugin,
-    ));
-
-    app.run();
+trait WasmPluginTrait {
+    fn add_wasm_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self;
+}
+impl WasmPluginTrait for App {
+    fn add_wasm_plugin<P: Plugin>(&mut self, _plugin: P) -> &mut Self {
+        #[cfg(target_family = "wasm")]
+        self.add_plugins(plugin);
+        self
+    }
 }

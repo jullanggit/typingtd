@@ -10,12 +10,13 @@ bevy= { version = "0.13.2",  default-features = false, features = ["animation", 
 bevy_asset_loader = { version = "0.20.2", features = ["2d"] }
 bevy-inspector-egui = "0.24.0"
 # required for wasm
-web-sys = "0.3.69"
+web-sys = { version = "0.3.69", features = ["Window", "Document", "Element", "HtmlCanvasElement", "CssStyleDeclaration"] }
 rand = "0.8.5"
 serde = "1.0.202"
 bevy_common_assets = { version = "0.10.0", features = ["json"] }
 strum = { version = "0.26.2", features = ["derive"] }
 default-constructor = "0.2.1"
+mimalloc = "0.1.42"
 
 [profile.dev]
 opt-level = 1

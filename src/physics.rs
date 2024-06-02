@@ -3,10 +3,7 @@ use bevy::prelude::*;
 pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Velocity>()
-            .register_type::<Position>()
-            .register_type::<Rotation>()
-            .register_type::<Layer>()
+        app.register_type::<(Velocity, Position, Rotation, Layer)>()
             .add_systems(Update, (apply_rotation, apply_layer))
             .add_systems(Update, (apply_velocity, apply_position).chain());
     }

@@ -32,6 +32,6 @@ fn insert_tower_typing(
         let action = match tower.tower_type {
             TowerType::Fire | TowerType::Arrow => Action::ShootArrow(*position),
         };
-        commands.run_system_with_input(oneshot_systems.add_to_type, (entity, action))
+        commands.run_system_with_input(oneshot_systems.add_to_type, (entity, action));
     }
 }

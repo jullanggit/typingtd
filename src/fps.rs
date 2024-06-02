@@ -7,7 +7,6 @@ use bevy::{
 pub struct FpsPlugin;
 impl Plugin for FpsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(FrameTimeDiagnosticsPlugin)
-            .add_plugins(LogDiagnosticsPlugin::default());
+        app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
     }
 }
