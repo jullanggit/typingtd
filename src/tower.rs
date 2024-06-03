@@ -13,6 +13,7 @@ impl Plugin for TowerPlugin {
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Tower {
     pub tower_type: TowerType,
 }

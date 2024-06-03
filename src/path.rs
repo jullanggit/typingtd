@@ -56,12 +56,14 @@ impl From<Direction> for Vec2 {
 
 #[derive(Resource, Debug, Clone, Reflect, Default)]
 #[reflect(Resource)]
+#[repr(transparent)]
 pub struct Path {
     pub parts: Vec<Vec2>,
 }
 
 #[derive(Component, Debug, Clone, Reflect, Default)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct PathState {
     index: usize,
 }

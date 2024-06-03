@@ -15,6 +15,7 @@ impl Plugin for ProjectilePlugin {
 
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Speed {
     pub value: f32,
 }

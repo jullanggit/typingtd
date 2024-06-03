@@ -11,6 +11,7 @@ impl Plugin for PhysicsPlugin {
 
 #[derive(Component, Debug, Clone, Copy, Default, Reflect)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Velocity {
     pub value: Vec2,
 }
@@ -22,6 +23,7 @@ impl Velocity {
 
 #[derive(Component, Clone, Copy, Default, Reflect, Debug)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Position {
     pub value: Vec2,
 }
@@ -39,6 +41,7 @@ impl Position {
 
 #[derive(Component, Clone, Copy, Default, Reflect, Debug)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Rotation {
     pub value: Quat,
 }
@@ -56,6 +59,7 @@ impl Rotation {
 // To be used with Position and Rotation Component
 #[derive(Component, Default, Reflect, Debug, Clone)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Obb {
     pub half_extents: Vec2,
 }
@@ -120,6 +124,7 @@ impl Obb {
 
 #[derive(Component, Default, Reflect, Debug, Clone)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Layer {
     value: f32,
 }

@@ -58,6 +58,7 @@ impl Enemy {
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Attack {
     damage: f64,
 }

@@ -19,6 +19,7 @@ impl Plugin for MapPlugin {
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
+#[repr(transparent)]
 struct Tile {
     tile_type: TileType,
 }
