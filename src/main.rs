@@ -1,5 +1,4 @@
 #![feature(let_chains)]
-#![feature(slice_flatten)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::needless_pass_by_value)]
