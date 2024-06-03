@@ -12,8 +12,7 @@ pub struct PathPlugin;
 impl Plugin for PathPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Path>()
-            .register_type::<Direction>()
-            .register_type::<Path>()
+            .register_type::<(Direction, Path)>()
             .add_systems(Update, follow_path.after(apply_velocity))
             .add_systems(OnEnter(SpritesLoadingStates::Finished), load_path);
     }
