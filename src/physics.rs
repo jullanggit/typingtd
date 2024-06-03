@@ -72,7 +72,7 @@ impl Obb {
         other_rotation: &Rotation,
     ) -> bool {
         let axes_nested = [self_rotation.compute_axes(), other_rotation.compute_axes()];
-        let axes = axes_nested.flatten();
+        let axes = axes_nested.as_flattened();
         let center_delta = other_center.value - self_center.value;
 
         !axes
