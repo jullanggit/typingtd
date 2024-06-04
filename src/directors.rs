@@ -60,7 +60,7 @@ fn spawn_enemies(
 ) {
     if thread_rng().gen_range(0..100) == 69 {
         let random_enemy = Enemy::random();
-        let random_enemy_cost = random_enemy.cost();
+        let random_enemy_cost = random_enemy.credit_cost();
         if random_enemy_cost <= director.credits {
             director.credits -= random_enemy_cost;
 
