@@ -126,7 +126,8 @@ pub fn add_to_type(
     let word = new_word
         .replace('ö', "oe")
         .replace('ä', "ae")
-        .replace('ü', "ue");
+        .replace('ü', "ue")
+        .replace('ß', "ss");
 
     commands.entity(entity).with_children(|parent| {
         parent.spawn((
