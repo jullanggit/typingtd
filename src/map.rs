@@ -4,6 +4,7 @@ use crate::{
     asset_loader::{Handles, SpritesLoadingStates},
     physics::Position,
     tower::{Tower, TowerType},
+    upgrades::ArrowTowerUpgrades,
 };
 
 pub const TILE_SIZE: f32 = 32.0;
@@ -94,6 +95,7 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
                         Tower {
                             tower_type: TowerType::Arrow,
                         },
+                        ArrowTowerUpgrades::default(),
                     ));
                 }
                 other => {

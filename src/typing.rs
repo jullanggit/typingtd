@@ -7,6 +7,7 @@ use crate::{
     oneshot::OneShotSystems,
     physics::Position,
     projectile::{Speed, PROJECTILE_SPEED},
+    upgrades::ArrowTowerUpgrades,
 };
 
 // Plugin
@@ -53,7 +54,7 @@ impl Wordlists {
 
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
-    ShootArrow(Position),
+    ShootArrow(Position, ArrowTowerUpgrades),
 }
 
 #[derive(Component, Debug, Reflect)]
@@ -99,10 +100,10 @@ fn handle_actions(
 ) {
     for (to_type, parent, entity) in &query {
         if to_type.progress >= to_type.word.len() {
-            match to_type.action {
-                Action::ShootArrow(position) => commands.run_system_with_input(
+            match to_type.action.clone() {
+                Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
                     oneshot_systems.spawn_arrow,
-                    (position, Speed::new(PROJECTILE_SPEED)),
+                    (position, Speed::new(PROJECTILE_SPEED), upgrades),
                 ),
             }
             commands.entity(parent.get()).remove_children(&[entity]);

@@ -39,6 +39,7 @@ mod physics;
 mod projectile;
 mod tower;
 mod typing;
+mod upgrades;
 mod wasm;
 
 fn main() {
