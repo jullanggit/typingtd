@@ -19,6 +19,7 @@ use camera::CameraPlugin;
 use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
 use map::MapPlugin;
+use menus::MenuPlugin;
 use oneshot::OneShotPlugin;
 use path::PathPlugin;
 use physics::PhysicsPlugin;
@@ -33,6 +34,8 @@ mod directors;
 mod enemy;
 mod fps;
 mod map;
+mod menu_interaction;
+mod menus;
 mod oneshot;
 mod path;
 mod physics;
@@ -62,6 +65,7 @@ fn main() {
             PathPlugin,
             EnemyPlugin,
             DirectorPlugin,
+            MenuPlugin,
         ))
         .run();
 }
