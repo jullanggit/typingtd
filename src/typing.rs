@@ -118,12 +118,16 @@ pub fn add_to_type(
     handles: Res<Handles>,
     language: Res<Language>,
 ) {
-    let word = wordlists
+    let new_word = wordlists
         .get(handles.wordlists.clone())
         .expect("Wordlists should be loaded")
         .get_word(&language);
 
-    dbg!(&word);
+    let word = new_word
+        .replace('ö', "oe")
+        .replace('ä', "ae")
+        .replace('ü', "ue");
+
     commands.entity(entity).with_children(|parent| {
         parent.spawn((
             Name::new("Text"),
