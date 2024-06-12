@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 
-use crate::{enemy::Enemy, oneshot::OneShotSystems, physics::apply_position};
+use crate::{
+    enemy::Enemy, oneshot::OneShotSystems, physics::apply_position, states::GameSystemSet,
+};
 
 pub struct DirectorPlugin;
 impl Plugin for DirectorPlugin {
@@ -10,8 +12,10 @@ impl Plugin for DirectorPlugin {
             .init_resource::<Director>()
             .register_type::<Director>()
             .register_type::<Difficulty>()
-            .add_systems(Update, update_director)
-            .add_systems(FixedUpdate, spawn_enemies.after(apply_position));
+            .add_systems(
+                Update,
+                (update_director, spawn_enemies.after(apply_position)).in_set(GameSystemSet),
+            );
     }
 }
 

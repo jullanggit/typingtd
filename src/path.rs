@@ -4,6 +4,7 @@ use crate::{
     map::{to_rgba_index, to_world},
     physics::{apply_velocity, Position, Velocity},
     projectile::Speed,
+    states::GameSystemSet,
 };
 use bevy::prelude::*;
 use strum::{EnumIter, IntoEnumIterator};
@@ -13,7 +14,10 @@ impl Plugin for PathPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Path>()
             .register_type::<(Direction, Path)>()
-            .add_systems(Update, follow_path.after(apply_velocity))
+            .add_systems(
+                Update,
+                (follow_path.after(apply_velocity)).in_set(GameSystemSet),
+            )
             .add_systems(OnEnter(SpritesLoadingStates::Finished), load_path);
     }
 }

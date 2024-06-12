@@ -1,11 +1,21 @@
 use bevy::prelude::*;
 
+use crate::states::GameSystemSet;
+
 pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<(Velocity, Position, Rotation, Layer)>()
-            .add_systems(Update, (apply_rotation, apply_layer))
-            .add_systems(Update, (apply_velocity, apply_position).chain());
+            .add_systems(
+                Update,
+                (
+                    apply_rotation,
+                    apply_layer,
+                    apply_velocity,
+                    apply_position.after(apply_velocity),
+                )
+                    .in_set(GameSystemSet),
+            );
     }
 }
 

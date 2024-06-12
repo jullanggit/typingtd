@@ -7,6 +7,7 @@ use crate::{
     path::{to_0_or_1, Path, PathState},
     physics::{Layer, Obb, Position, Rotation, Velocity},
     projectile::Speed,
+    states::GameSystemSet,
 };
 
 pub const ENEMY_SPEED: f32 = 50.;
@@ -23,7 +24,8 @@ impl Plugin for EnemyPlugin {
                     apply_damage,
                     despawn_enemies.after(apply_damage),
                     despawn_far_entities,
-                ),
+                )
+                    .in_set(GameSystemSet),
             );
     }
 }

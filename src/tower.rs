@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 
-use crate::{oneshot::OneShotSystems, physics::Position, typing::Action};
+use crate::{oneshot::OneShotSystems, physics::Position, states::GameSystemSet, typing::Action};
 
 pub struct TowerPlugin;
 impl Plugin for TowerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Tower>()
             .register_type::<TowerType>()
-            .add_systems(Update, insert_tower_typing);
+            .add_systems(Update, insert_tower_typing.in_set(GameSystemSet));
     }
 }
 

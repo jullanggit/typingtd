@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_device_lang::get_lang;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
 
@@ -13,14 +14,16 @@ use crate::{
 pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Language>().add_systems(
-            Update,
-            (
-                read_input,
-                handle_text_display.after(read_input),
-                handle_actions.after(read_input),
-            ),
-        );
+        app.init_resource::<Language>()
+            .add_systems(Startup, set_language)
+            .add_systems(
+                Update,
+                (
+                    read_input,
+                    handle_text_display.after(read_input),
+                    handle_actions.after(read_input),
+                ),
+            );
     }
 }
 
@@ -70,6 +73,16 @@ impl ToType {
             progress: 0,
             action,
         }
+    }
+}
+
+/// Sets the lanugage based on the device language
+fn set_language(mut lanugage: ResMut<Language>) {
+    let Some(language_string) = get_lang() else {
+        return;
+    };
+    if language_string.contains("de") {
+        *lanugage = Language::German
     }
 }
 
