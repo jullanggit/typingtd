@@ -14,7 +14,7 @@ impl Plugin for DirectorPlugin {
             .register_type::<Difficulty>()
             .add_systems(
                 Update,
-                (update_director, spawn_enemies.after(apply_position)).in_set(GameSystemSet),
+                (update_director, spawn_enemies.before(apply_position)).in_set(GameSystemSet),
             );
     }
 }
