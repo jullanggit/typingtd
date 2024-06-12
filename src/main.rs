@@ -24,6 +24,7 @@ use oneshot::OneShotPlugin;
 use path::PathPlugin;
 use physics::PhysicsPlugin;
 use projectile::ProjectilePlugin;
+use states::StatePlugin;
 use tower::TowerPlugin;
 use typing::TypingPlugin;
 use wasm::WasmPlugin;
@@ -66,6 +67,7 @@ fn main() {
             EnemyPlugin,
             DirectorPlugin,
             MenuPlugin,
+            StatePlugin,
         ))
         .run();
 }

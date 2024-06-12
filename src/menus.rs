@@ -1,25 +1,22 @@
 use bevy::prelude::*;
+use strum::IntoEnumIterator;
 
-use crate::typing::Language;
+use crate::{
+    states::{GameState, LanguageMenuSystemSet},
+    typing::Language,
+};
 
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<MenuOpen>().add_systems(
+        app.add_systems(
             Update,
             (
                 check_input,
-                interact_with_english_button,
-                interact_with_german_button,
+                button_interactions.in_set(LanguageMenuSystemSet),
             ),
         );
     }
-}
-
-#[derive(Resource, Debug, Clone, Reflect, Default)]
-#[reflect(Resource)]
-struct MenuOpen {
-    open: bool,
 }
 
 #[derive(Component, Debug, Clone, Reflect, Default)]
@@ -28,25 +25,35 @@ struct Menu;
 
 #[derive(Component, Debug, Clone, Reflect, Default)]
 #[reflect(Component)]
-pub struct EnglishButton;
-
-#[derive(Component, Debug, Clone, Reflect, Default)]
-#[reflect(Component)]
-pub struct GermanButton;
+#[repr(transparent)]
+pub struct LanguageButton {
+    language: Language,
+}
+impl LanguageButton {
+    pub const fn new(language: Language) -> Self {
+        Self { language }
+    }
+}
 
 fn check_input(
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
-    menu_entity: Query<Entity, With<Menu>>,
-    mut menu_open: ResMut<MenuOpen>,
+    menus: Query<Entity, With<Menu>>,
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
-    if input.just_pressed(KeyCode::Escape) && !menu_open.open {
-        spawn_menu(commands);
-        menu_open.open = true;
-    } else if input.just_pressed(KeyCode::Escape) && menu_open.open {
-        for entity in &menu_entity {
-            commands.entity(entity).despawn_recursive();
-            menu_open.open = false;
+    if input.just_pressed(KeyCode::Escape) {
+        match current_state.get() {
+            GameState::LanguageMenu => {
+                for menu in &menus {
+                    commands.entity(menu).despawn_recursive();
+                    next_state.set(GameState::Running);
+                }
+            }
+            GameState::Running => {
+                spawn_menu(commands);
+                next_state.set(GameState::LanguageMenu);
+            }
         }
     }
 }
@@ -84,66 +91,38 @@ fn spawn_menu(mut commands: Commands) {
                 },
                 ..default()
             });
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(200.0),
-                            height: Val::Px(80.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
+            for language in Language::iter() {
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                width: Val::Px(200.0),
+                                height: Val::Px(80.0),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
                             ..default()
                         },
-                        background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
-                        ..default()
-                    },
-                    EnglishButton,
-                ))
-                .with_children(|parent: &mut ChildBuilder| {
-                    parent.spawn(TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(
-                                "English",
-                                TextStyle {
-                                    font_size: 40.0,
-                                    ..default()
-                                },
-                            )],
+                        LanguageButton::new(language.clone()),
+                    ))
+                    .with_children(|parent: &mut ChildBuilder| {
+                        parent.spawn(TextBundle {
+                            text: Text {
+                                sections: vec![TextSection::new(
+                                    format!("{language:?}"),
+                                    TextStyle {
+                                        font_size: 40.0,
+                                        ..default()
+                                    },
+                                )],
+                                ..default()
+                            },
                             ..default()
-                        },
-                        ..default()
+                        });
                     });
-                });
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(200.0),
-                            height: Val::Px(80.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },
-                        background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
-                        ..default()
-                    },
-                    GermanButton,
-                ))
-                .with_children(|parent: &mut ChildBuilder| {
-                    parent.spawn(TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(
-                                "Deutsch",
-                                TextStyle {
-                                    font_size: 40.0,
-                                    ..default()
-                                },
-                            )],
-                            ..default()
-                        },
-                        ..default()
-                    });
-                });
+            }
         });
 }
 
@@ -152,37 +131,15 @@ const NORMAL_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.8);
 const HOVERED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.4);
 const PRESSED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 1.0);
 
-pub fn interact_with_english_button(
-    mut button_query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<EnglishButton>),
-    >,
+pub fn button_interactions(
+    mut buttons: Query<(&Interaction, &LanguageButton, &mut BackgroundColor), Changed<Interaction>>,
     mut language: ResMut<Language>,
 ) {
-    if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
+    for (interaction, language_button, mut background_color) in &mut buttons {
         match *interaction {
             Interaction::Pressed => {
                 *background_color = PRESSED_COLOR.into();
-                *language = Language::English;
-            }
-            Interaction::Hovered => *background_color = HOVERED_COLOR.into(),
-            Interaction::None => *background_color = NORMAL_COLOR.into(),
-        }
-    }
-}
-
-pub fn interact_with_german_button(
-    mut button_query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<GermanButton>),
-    >,
-    mut language: ResMut<Language>,
-) {
-    if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
-        match *interaction {
-            Interaction::Pressed => {
-                *background_color = PRESSED_COLOR.into();
-                *language = Language::German;
+                *language = language_button.language.clone();
             }
             Interaction::Hovered => *background_color = HOVERED_COLOR.into(),
             Interaction::None => *background_color = NORMAL_COLOR.into(),

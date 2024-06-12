@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_device_lang::get_lang;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
+use strum::{EnumIter, EnumString};
 
 use crate::{
     asset_loader::Handles,
@@ -27,7 +28,7 @@ impl Plugin for TypingPlugin {
     }
 }
 
-#[derive(Resource, Debug, Clone, Reflect, Default)]
+#[derive(Resource, Debug, Clone, Reflect, Default, EnumIter)]
 #[reflect(Resource)]
 // pub struct Language(Languages);
 // #[derive(Debug, Clone, Reflect, Default)]
