@@ -34,7 +34,6 @@ mod directors;
 mod enemy;
 mod fps;
 mod map;
-mod menu_interaction;
 mod menus;
 mod oneshot;
 mod path;
