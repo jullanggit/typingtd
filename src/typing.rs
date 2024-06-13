@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_device_lang::get_lang;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
-use strum::{EnumIter, EnumString};
+use strum::EnumIter;
 
 use crate::{
     asset_loader::Handles,
@@ -112,7 +112,7 @@ fn handle_actions(
     oneshot_systems: Res<OneShotSystems>,
 ) {
     for (to_type, parent, entity) in &query {
-        if to_type.progress >= to_type.word.len() {
+        if to_type.progress >= to_type.word.chars().count() {
             match to_type.action {
                 Action::ShootArrow(position) => commands.run_system_with_input(
                     oneshot_systems.spawn_arrow,
@@ -132,16 +132,11 @@ pub fn add_to_type(
     handles: Res<Handles>,
     language: Res<Language>,
 ) {
-    let new_word = wordlists
+    let word = wordlists
         .get(handles.wordlists.clone())
         .expect("Wordlists should be loaded")
-        .get_word(&language);
-
-    let word = new_word
-        .replace('ö', "oe")
-        .replace('ä', "ae")
-        .replace('ü', "ue")
-        .replace('ß', "ss");
+        .get_word(&language)
+        .replace("ß", "ss");
 
     commands.entity(entity).with_children(|parent| {
         parent.spawn((
@@ -152,17 +147,17 @@ pub fn add_to_type(
                         TextSection {
                             value: String::new(),
                             style: TextStyle {
+                                font: handles.font.clone(),
                                 font_size: 20.,
                                 color: Color::GREEN,
-                                ..default()
                             },
                         },
                         TextSection {
                             value: word.clone(),
                             style: TextStyle {
+                                font: handles.font.clone(),
                                 font_size: 20.,
                                 color: Color::rgb_u8(174, 137, 0),
-                                ..default()
                             },
                         },
                     ],
@@ -177,18 +172,10 @@ pub fn add_to_type(
 
 fn handle_text_display(mut query: Query<(&ToType, &mut Text)>) {
     for (to_type, mut text) in &mut query {
-        if text.sections[0].value.len() != to_type.progress {
-            text.sections[0].value = to_type
-                .word
-                .get(0..to_type.progress)
-                .expect("Progress should not be larger than word")
-                .to_string();
+        if text.sections[0].value.chars().count() != to_type.progress {
+            text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
 
-            text.sections[1].value = to_type
-                .word
-                .get(to_type.progress..to_type.word.len())
-                .expect("Progress should not be larger than word")
-                .to_string();
+            text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
         }
     }
 }

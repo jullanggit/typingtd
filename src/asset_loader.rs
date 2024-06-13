@@ -10,6 +10,8 @@ pub struct Handles {
     pub wordlists: Handle<Wordlists>,
     #[asset(path = "level1.png")]
     pub level1: Handle<Image>,
+    #[asset(path = "dejavu-sans.book.ttf")]
+    pub font: Handle<Font>,
 }
 
 pub struct AssetLoaderPlugin;
