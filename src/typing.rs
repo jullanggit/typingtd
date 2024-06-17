@@ -114,8 +114,8 @@ fn handle_actions(
 ) {
     for (to_type, parent, entity) in &query {
         if to_type.progress >= to_type.word.chars().count() {
-            match to_type.action {
-                Action::ShootArrow(position) => commands.run_system_with_input(
+            match to_type.action.clone() {
+                Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
                     oneshot_systems.spawn_arrow,
                     (position, Speed::new(PROJECTILE_SPEED), upgrades),
                 ),
