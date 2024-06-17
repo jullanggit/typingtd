@@ -8,15 +8,20 @@ impl Plugin for StatePlugin {
             .configure_sets(
                 Update,
                 LanguageMenuSystemSet.run_if(in_state(GameState::LanguageMenu)),
+            )
+            .configure_sets(
+                Update,
+                MainMenuSystemSet.run_if(in_state(GameState::MainMenu)),
             );
     }
 }
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
-    #[default]
     Running,
     LanguageMenu,
+    #[default]
+    MainMenu,
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -24,3 +29,6 @@ pub struct GameSystemSet;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LanguageMenuSystemSet;
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MainMenuSystemSet;

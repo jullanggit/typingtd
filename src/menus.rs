@@ -2,18 +2,20 @@ use bevy::prelude::*;
 use strum::IntoEnumIterator;
 
 use crate::{
-    states::{GameState, LanguageMenuSystemSet},
+    states::{GameState, LanguageMenuSystemSet, MainMenuSystemSet},
     typing::Language,
 };
 
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Startup, spawn_main_menu.in_set(MainMenuSystemSet));
         app.add_systems(
             Update,
             (
                 check_input,
-                button_interactions.in_set(LanguageMenuSystemSet),
+                pause_menu_button_interactions.in_set(LanguageMenuSystemSet),
+                main_menu_button_interactions.in_set(MainMenuSystemSet),
             ),
         );
     }
@@ -51,14 +53,15 @@ fn check_input(
                 }
             }
             GameState::Running => {
-                spawn_menu(commands);
+                spawn_pause_menu(commands);
                 next_state.set(GameState::LanguageMenu);
             }
+            _ => {}
         }
     }
 }
 
-fn spawn_menu(mut commands: Commands) {
+fn spawn_pause_menu(mut commands: Commands) {
     commands
         .spawn((
             NodeBundle {
@@ -126,12 +129,31 @@ fn spawn_menu(mut commands: Commands) {
         });
 }
 
+fn spawn_main_menu(mut commands: Commands) {
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(8.0),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            background_color: Color::rgba(0.5, 0.5, 0.5, 1.0).into(),
+            ..default()
+        },
+        Menu,
+    ));
+}
+
 // Menu interactions
 const NORMAL_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.8);
 const HOVERED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.4);
 const PRESSED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 1.0);
 
-pub fn button_interactions(
+pub fn pause_menu_button_interactions(
     mut buttons: Query<(&Interaction, &LanguageButton, &mut BackgroundColor), Changed<Interaction>>,
     mut language: ResMut<Language>,
 ) {
@@ -146,3 +168,5 @@ pub fn button_interactions(
         }
     }
 }
+
+pub fn main_menu_button_interactions() {}
