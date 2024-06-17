@@ -2,6 +2,7 @@ use crate::{
     asset_loader::{Handles, SpritesLoadingStates},
     physics::Position,
     tower::{Tower, TowerType},
+    upgrades::ArrowTowerUpgrades,
 };
 use bevy::prelude::*;
 

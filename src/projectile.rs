@@ -1,6 +1,7 @@
 use crate::{
-    enemy::{Attack, Enemy},
-    physics::{Layer, Obb, Position, Rotation, Velocity},
+    enemy::{Attack, Enemy, Health},
+    physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
+    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 use bevy::prelude::*;
 
@@ -9,7 +10,8 @@ pub const PROJECTILE_SPEED: f32 = 500.;
 pub struct ProjectilePlugin;
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Projectile>();
+        app.register_type::<Projectile>()
+            .add_systems(Update, track_enemy.before(apply_velocity));
     }
 }
 
@@ -29,31 +31,27 @@ impl Speed {
 #[reflect(Component)]
 pub struct Projectile;
 
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
+struct Tracking;
+
 // Arrow Tower
 /// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
+/// TODO: implement multishot
 pub fn spawn_arrow(
-    In((arrow_position, speed)): In<(Position, Speed)>,
+    In((arrow_position, speed, upgrades)): In<(Position, Speed, ArrowTowerUpgrades)>,
     enemies: Query<&Position, With<Enemy>>,
     mut commands: Commands,
 ) {
-    let Some(closest_enemy) =
-        enemies
-            .iter()
-            .map(|position| position.value)
-            .min_by(|enemy_position1, enemy_position2| {
-                arrow_position
-                    .value
-                    .distance(*enemy_position1)
-                    .total_cmp(&arrow_position.value.distance(*enemy_position2))
-            })
-    else {
+    // Get the closest enemy, exit if there arent any
+    let Some(closest_enemy) = closest_enemy(&enemies, arrow_position) else {
         return;
     };
 
     let direction = (closest_enemy - arrow_position.value).normalize();
     let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
 
-    commands.spawn((
+    let mut arrow = commands.spawn((
         Name::new("Arrow"),
         arrow_position,
         Rotation::new(direction_quat),
@@ -71,5 +69,58 @@ pub fn spawn_arrow(
         Velocity::new((direction_quat * Vec3::X).truncate() * speed.value),
         Layer::new(1.),
         Attack::new(1.),
+        Health::new(
+            // Piercing value, or 1
+            upgrades
+                .upgrades
+                .iter()
+                .find_map(|upgrade| match upgrade {
+                    ArrowTowerUpgrade::Piercing(value) => Some(*value),
+                    _ => None,
+                })
+                .unwrap_or(1.),
+        ),
     ));
+    if upgrades.upgrades.contains(&ArrowTowerUpgrade::Tracking) {
+        arrow.insert(Tracking);
+    };
+}
+
+fn closest_enemy(
+    enemies: &Query<'_, '_, &Position, With<Enemy>>,
+    arrow_position: Position,
+) -> Option<Vec2> {
+    enemies
+        .iter()
+        .map(|position| position.value)
+        .min_by(|enemy_position1, enemy_position2| {
+            arrow_position
+                .value
+                .distance(*enemy_position1)
+                .total_cmp(&arrow_position.value.distance(*enemy_position2))
+        })
+}
+
+fn track_enemy(
+    enemies: Query<&Position, With<Enemy>>,
+    mut tracking_arrows: Query<
+        (&Position, &Speed, &mut Rotation, &mut Velocity),
+        (With<Tracking>, Without<Enemy>),
+    >,
+) {
+    for (arrow_position, speed, mut rotation, mut velocity) in &mut tracking_arrows {
+        // Get the closest enemy, exit if there arent any
+        let Some(closest_enemy) = closest_enemy(&enemies, *arrow_position) else {
+            return;
+        };
+
+        // Get the rotation
+        let direction = (closest_enemy - arrow_position.value).normalize();
+        let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
+
+        rotation.value = direction_quat;
+
+        // readjust the velocity
+        velocity.value = (direction_quat * Vec3::X).truncate() * speed.value;
+    }
 }

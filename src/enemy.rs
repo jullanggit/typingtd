@@ -15,9 +15,8 @@ pub const ENEMY_SPEED: f32 = 50.;
 pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Health>()
-            .register_type::<Enemy>()
-            .register_type::<Attack>()
+        app.register_type::<(Health, Enemy, Attack)>()
+            .init_resource::<Money>()
             .add_systems(
                 Update,
                 (
@@ -44,13 +43,19 @@ impl Enemy {
             _ => unreachable!(),
         }
     }
-    pub const fn cost(&self) -> f64 {
+    pub const fn credit_cost(&self) -> f64 {
         match self {
             Self::Base => 1.,
             Self::Chunky => 2.,
         }
     }
     pub const fn health(&self) -> f64 {
+        match self {
+            Self::Base => 1.,
+            Self::Chunky => 3.,
+        }
+    }
+    pub const fn value(&self) -> f64 {
         match self {
             Self::Base => 1.,
             Self::Chunky => 3.,
@@ -72,14 +77,21 @@ impl Attack {
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[repr(transparent)]
 pub struct Health {
-    max: f64,
-    current: f64,
+    value: f64,
 }
 impl Health {
-    pub const fn new(max: f64) -> Self {
-        Self { max, current: max }
+    pub const fn new(value: f64) -> Self {
+        Self { value }
     }
+}
+
+#[derive(Resource, Debug, Clone, Reflect, Default)]
+#[reflect(Resource)]
+#[repr(transparent)]
+pub struct Money {
+    value: f64,
 }
 
 fn apply_damage(
@@ -98,9 +110,9 @@ fn apply_damage(
                 attack_rotation,
             ) {
                 if let Some(ref mut attack_health) = attack_health_option {
-                    attack_health.current -= enemy_health.current;
+                    attack_health.value -= enemy_health.value;
                 }
-                enemy_health.current -= attack.damage;
+                enemy_health.value -= attack.damage;
             }
         }
     }
@@ -129,9 +141,14 @@ pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Pat
     ));
 }
 
-fn despawn_enemies(mut commands: Commands, enemies: Query<(&Health, Entity), With<Enemy>>) {
-    for (health, entity) in &enemies {
-        if health.current < 0. {
+fn despawn_enemies(
+    mut commands: Commands,
+    enemies: Query<(&Health, &Enemy, Entity)>,
+    mut money: ResMut<Money>,
+) {
+    for (health, enemy_type, entity) in &enemies {
+        if health.value < 0. {
+            money.value += enemy_type.value();
             commands.entity(entity).despawn();
         }
     }

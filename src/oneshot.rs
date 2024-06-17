@@ -6,6 +6,7 @@ use crate::{
     projectile::spawn_arrow,
     projectile::Speed,
     typing::{add_to_type, Action},
+    upgrades::ArrowTowerUpgrades,
 };
 
 pub struct OneShotPlugin;
@@ -17,7 +18,7 @@ impl Plugin for OneShotPlugin {
 
 #[derive(Resource, Debug, Clone)]
 pub struct OneShotSystems {
-    pub spawn_arrow: SystemId<(Position, Speed)>,
+    pub spawn_arrow: SystemId<(Position, Speed, ArrowTowerUpgrades)>,
     pub spawn_enemy: SystemId<Enemy>,
     pub add_to_type: SystemId<(Entity, Action)>,
 }

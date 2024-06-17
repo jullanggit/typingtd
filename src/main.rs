@@ -43,6 +43,7 @@ mod projectile;
 mod states;
 mod tower;
 mod typing;
+mod upgrades;
 mod wasm;
 
 fn main() {
