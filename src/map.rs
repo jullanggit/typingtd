@@ -1,10 +1,9 @@
-use bevy::prelude::*;
-
 use crate::{
     asset_loader::{Handles, SpritesLoadingStates},
     physics::Position,
     tower::{Tower, TowerType},
 };
+use bevy::prelude::*;
 
 pub const TILE_SIZE: f32 = 32.0;
 
@@ -45,63 +44,88 @@ pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Asse
             let pixel_index = to_rgba_index(x, y, size.x) as usize;
             let rgba = &level1_image.data[pixel_index..pixel_index + 4];
 
-            let mut entity = commands.spawn((
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::rgba_u8(rgba[0], rgba[1], rgba[2], rgba[3]),
-                        custom_size: Some(Vec2::splat(TILE_SIZE)),
-                        ..default()
-                    },
-                    ..default()
-                },
-                Position::new(to_world(x, y, size)),
-            ));
-
             match rgba {
-                [0, 0, 0, 255] => {
-                    entity.insert((
-                        Name::new("Way"),
-                        Tile {
-                            tile_type: TileType::Way,
-                        },
-                    ));
-                }
-                [255, 255, 255, 255] => {
-                    entity.insert((
-                        Name::new("Grass"),
-                        Tile {
-                            tile_type: TileType::Grass,
-                        },
-                    ));
-                }
-                // [255, 0, 0, 255] => {
-                //     entity.insert((
-                //         Name::new("Fire Tower"),
-                //         Tile {
-                //             tile_type: TileType::Tower,
-                //         },
-                //         Tower {
-                //             tower_type: TowerType::Fire,
-                //         },
-                //     ));
-                // }
-                [111, 78, 55, 255] => {
-                    entity.insert((
-                        Name::new("Arrow Tower"),
-                        Tile {
-                            tile_type: TileType::Tower,
-                        },
-                        Tower {
-                            tower_type: TowerType::Arrow,
-                        },
-                    ));
-                }
+                [0, 0, 0, 255] => spawn_tile(
+                    &mut commands,
+                    &handles,
+                    "Way",
+                    to_world(x, y, size),
+                    TileType::Way,
+                    83,
+                ),
+                [255, 255, 255, 255] => spawn_tile(
+                    &mut commands,
+                    &handles,
+                    "Grass",
+                    to_world(x, y, size),
+                    TileType::Grass,
+                    0,
+                ),
+                [111, 78, 55, 255] => spawn_tower(
+                    &mut commands,
+                    "Arrow Tower",
+                    to_world(x, y, size),
+                    TileType::Tower,
+                    TowerType::Arrow,
+                    rgba,
+                ),
                 other => {
                     dbg!(other);
                 }
             };
         }
     }
+}
+
+fn spawn_tile(
+    commands: &mut Commands,
+    handles: &Handles,
+    name: &'static str,
+    position: Vec2,
+    tile_type: TileType,
+    sprite_index: usize,
+) {
+    commands.spawn((
+        Name::new(name),
+        SpriteSheetBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::splat(TILE_SIZE)),
+                ..default()
+            },
+            atlas: TextureAtlas {
+                layout: handles.grass_layout.clone(),
+                index: sprite_index,
+            },
+            texture: handles.grass.clone(),
+            ..default()
+        },
+        Position::new(position),
+        Tile { tile_type },
+    ));
+}
+
+fn spawn_tower(
+    commands: &mut Commands,
+    name: &'static str,
+    position: Vec2,
+    tile_type: TileType,
+    tower_type: TowerType,
+    rgba: &[u8],
+) {
+    commands.spawn((
+        Name::new(name),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgba_u8(rgba[0], rgba[1], rgba[2], rgba[3]),
+                custom_size: Some(Vec2::splat(TILE_SIZE)),
+                ..default()
+            },
+            ..default()
+        },
+        Position::new(position),
+        Tile { tile_type },
+        Tower { tower_type },
+    ));
 }
 
 pub fn to_world(x: u32, y: u32, size: UVec2) -> Vec2 {

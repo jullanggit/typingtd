@@ -8,10 +8,18 @@ use crate::typing::Wordlists;
 pub struct Handles {
     #[asset(path = "all.words.json")]
     pub wordlists: Handle<Wordlists>,
+
     #[asset(path = "level1.png")]
     pub level1: Handle<Image>,
+
     #[asset(path = "dejavu-sans.book.ttf")]
     pub font: Handle<Font>,
+
+    #[asset(path = "grass.png")]
+    #[asset(image(sampler = nearest))]
+    pub grass: Handle<Image>,
+    #[asset(texture_atlas_layout(tile_size_x = 16., tile_size_y = 16., columns = 25, rows = 14))]
+    pub grass_layout: Handle<TextureAtlasLayout>,
 }
 
 pub struct AssetLoaderPlugin;

@@ -83,7 +83,7 @@ fn set_language(mut lanugage: ResMut<Language>) {
         return;
     };
     if language_string.contains("de") {
-        *lanugage = Language::German
+        *lanugage = Language::German;
     }
 }
 
@@ -157,7 +157,7 @@ pub fn add_to_type(
                             style: TextStyle {
                                 font: handles.font.clone(),
                                 font_size: 20.,
-                                color: Color::rgb_u8(174, 137, 0),
+                                color: Color::rgb_u8(255, 255, 255),
                             },
                         },
                     ],
