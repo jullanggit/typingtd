@@ -38,6 +38,6 @@ fn insert_tower_typing(
                 Action::ShootArrow(*position, arrow_tower_upgrades.clone())
             }
         };
-        commands.run_system_with_input(oneshot_systems.add_to_type, (entity, action));
+        commands.run_system_with_input(oneshot_systems.add_to_type, (entity, action, None));
     }
 }

@@ -2,18 +2,20 @@ use bevy::prelude::*;
 use strum::IntoEnumIterator;
 
 use crate::{
+    oneshot::OneShotSystems,
     states::{GameState, LanguageMenuSystemSet},
-    typing::Language,
+    typing::{handle_action, Action, Language},
 };
 
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.register_type::<MenuButton>().add_systems(
             Update,
             (
-                check_input,
+                toggle_pause_menu,
                 button_interactions.in_set(LanguageMenuSystemSet),
+                add_menu_button_to_type.in_set(LanguageMenuSystemSet),
             ),
         );
     }
@@ -23,19 +25,19 @@ impl Plugin for MenuPlugin {
 #[reflect(Component)]
 struct Menu;
 
-#[derive(Component, Debug, Clone, Reflect, Default)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
 #[repr(transparent)]
-pub struct LanguageButton {
-    language: Language,
+pub struct MenuButton {
+    action: Action,
 }
-impl LanguageButton {
-    pub const fn new(language: Language) -> Self {
-        Self { language }
+impl MenuButton {
+    pub const fn new(action: Action) -> Self {
+        Self { action }
     }
 }
 
-fn check_input(
+fn toggle_pause_menu(
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     menus: Query<Entity, With<Menu>>,
@@ -92,38 +94,39 @@ fn spawn_menu(mut commands: Commands) {
                 ..default()
             });
             for language in Language::iter() {
-                parent
-                    .spawn((
-                        ButtonBundle {
-                            style: Style {
-                                width: Val::Px(200.0),
-                                height: Val::Px(80.0),
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                            background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
+                parent.spawn((
+                    ButtonBundle {
+                        style: Style {
+                            width: Val::Px(200.0),
+                            height: Val::Px(80.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
                             ..default()
                         },
-                        LanguageButton::new(language.clone()),
-                    ))
-                    .with_children(|parent: &mut ChildBuilder| {
-                        parent.spawn(TextBundle {
-                            text: Text {
-                                sections: vec![TextSection::new(
-                                    format!("{language:?}"),
-                                    TextStyle {
-                                        font_size: 40.0,
-                                        ..default()
-                                    },
-                                )],
-                                ..default()
-                            },
-                            ..default()
-                        });
-                    });
+                        background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
+                        ..default()
+                    },
+                    MenuButton::new(Action::ChangeLanguage(language.clone())),
+                ));
             }
         });
+}
+
+fn add_menu_button_to_type(
+    menu_buttons: Query<(Entity, &MenuButton), Without<Children>>,
+    mut commands: Commands,
+    oneshot_systems: Res<OneShotSystems>,
+) {
+    for (entity, menu_button) in &menu_buttons {
+        commands.run_system_with_input(
+            oneshot_systems.add_to_type,
+            (
+                entity,
+                menu_button.action.clone(),
+                Some(format!("{}", menu_button.action)),
+            ),
+        );
+    }
 }
 
 // Menu interactions
@@ -132,14 +135,16 @@ const HOVERED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.4);
 const PRESSED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 1.0);
 
 pub fn button_interactions(
-    mut buttons: Query<(&Interaction, &LanguageButton, &mut BackgroundColor), Changed<Interaction>>,
-    mut language: ResMut<Language>,
+    mut buttons: Query<(&Interaction, &MenuButton, &mut BackgroundColor), Changed<Interaction>>,
+    mut commands: Commands,
+    oneshot_systems: Res<OneShotSystems>,
 ) {
-    for (interaction, language_button, mut background_color) in &mut buttons {
+    for (interaction, menu_button, mut background_color) in &mut buttons {
         match *interaction {
             Interaction::Pressed => {
                 *background_color = PRESSED_COLOR.into();
-                *language = language_button.language.clone();
+
+                handle_action(menu_button.action.clone(), &mut commands, &oneshot_systems);
             }
             Interaction::Hovered => *background_color = HOVERED_COLOR.into(),
             Interaction::None => *background_color = NORMAL_COLOR.into(),

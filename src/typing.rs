@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bevy::prelude::*;
 use bevy_device_lang::get_lang;
 use rand::{thread_rng, Rng};
@@ -7,7 +9,7 @@ use strum::EnumIter;
 use crate::{
     asset_loader::Handles,
     oneshot::OneShotSystems,
-    physics::Position,
+    physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
     upgrades::ArrowTowerUpgrades,
 };
@@ -17,13 +19,14 @@ pub struct TypingPlugin;
 impl Plugin for TypingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Language>()
-            .add_systems(Startup, set_language)
+            .register_type::<ToType>()
+            .add_systems(Startup, set_device_language)
             .add_systems(
                 Update,
                 (
                     read_input,
                     handle_text_display.after(read_input),
-                    handle_actions.after(read_input),
+                    handle_to_types.after(read_input),
                 ),
             );
     }
@@ -59,6 +62,19 @@ impl Wordlists {
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
     ShootArrow(Position, ArrowTowerUpgrades),
+    ChangeLanguage(Language),
+}
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
+                Self::ChangeLanguage(language) => format!("{language:?}"),
+            }
+        )
+    }
 }
 
 #[derive(Component, Debug, Reflect)]
@@ -79,7 +95,7 @@ impl ToType {
 }
 
 /// Sets the lanugage based on the device language
-fn set_language(mut lanugage: ResMut<Language>) {
+fn set_device_language(mut lanugage: ResMut<Language>) {
     let Some(language_string) = get_lang() else {
         return;
     };
@@ -107,42 +123,92 @@ fn read_input(mut chars: EventReader<ReceivedCharacter>, mut to_types: Query<&mu
         }
     });
 }
-fn handle_actions(
+fn handle_to_types(
     query: Query<(&ToType, &Parent, Entity)>,
     mut commands: Commands,
     oneshot_systems: Res<OneShotSystems>,
 ) {
     for (to_type, parent, entity) in &query {
         if to_type.progress >= to_type.word.chars().count() {
-            match to_type.action.clone() {
-                Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
-                    oneshot_systems.spawn_arrow,
-                    (position, Speed::new(PROJECTILE_SPEED), upgrades),
-                ),
-            }
+            handle_action(to_type.action.clone(), &mut commands, &oneshot_systems);
+
+            // Despawn entity
             commands.entity(parent.get()).remove_children(&[entity]);
             commands.entity(entity).despawn();
         }
     }
 }
 
+pub fn handle_action(
+    action: Action,
+    commands: &mut Commands<'_, '_>,
+    oneshot_systems: &Res<'_, OneShotSystems>,
+) {
+    match action {
+        Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
+            oneshot_systems.spawn_arrow,
+            (position, Speed::new(PROJECTILE_SPEED), upgrades),
+        ),
+        Action::ChangeLanguage(language) => {
+            commands.run_system_with_input(oneshot_systems.change_language, language);
+        }
+    }
+}
+
+pub fn change_language(In(new_language): In<Language>, mut language: ResMut<Language>) {
+    *language = new_language;
+}
+
 pub fn add_to_type(
-    In((entity, action)): In<(Entity, Action)>,
+    In((entity, action, option_word)): In<(Entity, Action, Option<String>)>,
     mut commands: Commands,
     wordlists: Res<Assets<Wordlists>>,
     handles: Res<Handles>,
     language: Res<Language>,
 ) {
-    let word = wordlists
-        .get(handles.wordlists.clone())
-        .expect("Wordlists should be loaded")
-        .get_word(&language)
-        .replace("ß", "ss");
+    let word = match option_word {
+        Some(ref word) => word.clone(),
+        None => wordlists
+            .get(handles.wordlists.clone())
+            .expect("Wordlists should be loaded")
+            .get_word(&language)
+            .replace("ß", "ss"),
+    };
 
     commands.entity(entity).with_children(|parent| {
-        parent.spawn((
+        let mut entity = parent.spawn((
             Name::new("Text"),
-            Text2dBundle {
+            ToType::new(word.clone(), action),
+            Layer::new(3.),
+        ));
+
+        if option_word.is_some() {
+            entity.insert(TextBundle {
+                text: Text {
+                    sections: vec![
+                        TextSection {
+                            value: String::new(),
+                            style: TextStyle {
+                                font: handles.font.clone(),
+                                font_size: 40.,
+                                color: Color::GREEN,
+                            },
+                        },
+                        TextSection {
+                            value: word.clone(),
+                            style: TextStyle {
+                                font: handles.font.clone(),
+                                font_size: 40.,
+                                color: Color::WHITE,
+                            },
+                        },
+                    ],
+                    ..default()
+                },
+                ..default()
+            });
+        } else {
+            entity.insert(Text2dBundle {
                 text: Text {
                     sections: vec![
                         TextSection {
@@ -154,20 +220,19 @@ pub fn add_to_type(
                             },
                         },
                         TextSection {
-                            value: word.clone(),
+                            value: word,
                             style: TextStyle {
                                 font: handles.font.clone(),
                                 font_size: 20.,
-                                color: Color::rgb_u8(255, 255, 255),
+                                color: Color::WHITE,
                             },
                         },
                     ],
                     ..default()
                 },
                 ..default()
-            },
-            ToType::new(word, action),
-        ));
+            });
+        }
     });
 }
 
