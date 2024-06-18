@@ -21,7 +21,7 @@ impl Plugin for EnemyPlugin {
                 Update,
                 (
                     apply_damage,
-                    despawn_enemies.after(apply_damage),
+                    despawn_dead_entities.after(apply_damage),
                     despawn_far_entities,
                 )
                     .in_set(GameSystemSet),
@@ -95,10 +95,15 @@ pub struct Money {
 }
 
 fn apply_damage(
+    mut enemies: Query<
+        (&Position, &Rotation, &mut Obb, &mut Health, &mut Sprite),
+        (With<Enemy>, Without<Attack>),
+    >,
     mut attacks: Query<(&Position, &Rotation, &Obb, Option<&mut Health>, &Attack), Without<Enemy>>,
-    mut enemies: Query<(&Position, &Rotation, &Obb, &mut Health), (With<Enemy>, Without<Attack>)>,
 ) {
-    for (enemy_position, enemy_rotation, enemy_obb, mut enemy_health) in &mut enemies {
+    for (enemy_position, enemy_rotation, mut enemy_obb, mut enemy_health, mut enemy_sprite) in
+        &mut enemies
+    {
         for (attack_position, attack_rotation, attack_obb, mut attack_health_option, attack) in
             &mut attacks
         {
@@ -113,18 +118,24 @@ fn apply_damage(
                     attack_health.value -= enemy_health.value;
                 }
                 enemy_health.value -= attack.damage;
+
+                // Adjust size based on hp
+                let new_size = Vec2::splat(calculate_enemy_size(enemy_health.value as f32));
+                enemy_obb.half_extents = new_size;
+                enemy_sprite.custom_size = Some(new_size);
             }
         }
     }
 }
 
 pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Path>) {
+    let size = Vec2::splat(calculate_enemy_size(variant.health() as f32));
     commands.spawn((
         Name::new(format!("{variant:?} Enemy")),
         SpriteBundle {
             sprite: Sprite {
                 color: Color::BLUE,
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
+                custom_size: Some(size),
                 ..default()
             },
             ..default()
@@ -137,18 +148,23 @@ pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Pat
         Speed::new(ENEMY_SPEED),
         PathState::new(1),
         Rotation::default(),
-        Obb::new(Vec2::splat(TILE_SIZE)),
+        Obb::new(size),
     ));
 }
+fn calculate_enemy_size(health: f32) -> f32 {
+    (TILE_SIZE * health) / 3.
+}
 
-fn despawn_enemies(
+fn despawn_dead_entities(
     mut commands: Commands,
-    enemies: Query<(&Health, &Enemy, Entity)>,
+    enemies: Query<(&Health, Option<&Enemy>, Entity)>,
     mut money: ResMut<Money>,
 ) {
     for (health, enemy_type, entity) in &enemies {
         if health.value < 0. {
-            money.value += enemy_type.value();
+            if let Some(enemy_type) = enemy_type {
+                money.value += enemy_type.value();
+            }
             commands.entity(entity).despawn();
         }
     }

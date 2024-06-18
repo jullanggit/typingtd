@@ -2,6 +2,7 @@ use crate::{
     asset_loader::{Handles, SpritesLoadingStates},
     physics::Position,
     tower::{Tower, TowerType},
+    upgrades::ArrowTowerUpgrades,
 };
 use bevy::prelude::*;
 
@@ -125,6 +126,7 @@ fn spawn_tower(
         Position::new(position),
         Tile { tile_type },
         Tower { tower_type },
+        ArrowTowerUpgrades::default(),
     ));
 }
 
