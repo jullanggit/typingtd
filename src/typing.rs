@@ -11,6 +11,7 @@ use crate::{
     oneshot::OneShotSystems,
     physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
+    states::GameState,
     upgrades::ArrowTowerUpgrades,
 };
 
@@ -63,6 +64,7 @@ impl Wordlists {
 pub enum Action {
     ShootArrow(Position, ArrowTowerUpgrades),
     ChangeLanguage(Language),
+    ChangeMenu(GameState),
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -72,6 +74,7 @@ impl Display for Action {
             match self {
                 Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
                 Self::ChangeLanguage(language) => format!("{language:?}"),
+                Self::ChangeMenu(menu) => format!("{menu}"),
             }
         )
     }
@@ -151,6 +154,10 @@ pub fn handle_action(
         ),
         Action::ChangeLanguage(language) => {
             commands.run_system_with_input(oneshot_systems.change_language, language);
+        }
+        Action::ChangeMenu(menu) => {
+            commands.run_system(oneshot_systems.despawn_menus);
+            commands.run_system_with_input(oneshot_systems.spawn_menu, menu);
         }
     }
 }

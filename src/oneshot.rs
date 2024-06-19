@@ -2,9 +2,11 @@ use bevy::{ecs::system::SystemId, prelude::*};
 
 use crate::{
     enemy::{spawn_enemy, Enemy},
+    menus::{despawn_menus, spawn_menu},
     physics::Position,
     projectile::spawn_arrow,
     projectile::Speed,
+    states::GameState,
     typing::{add_to_type, change_language, Action, Language},
     upgrades::ArrowTowerUpgrades,
 };
@@ -22,6 +24,8 @@ pub struct OneShotSystems {
     pub spawn_enemy: SystemId<Enemy>,
     pub add_to_type: SystemId<(Entity, Action, Option<String>)>,
     pub change_language: SystemId<Language>,
+    pub despawn_menus: SystemId,
+    pub spawn_menu: SystemId<GameState>,
 }
 impl FromWorld for OneShotSystems {
     fn from_world(world: &mut World) -> Self {
@@ -30,6 +34,8 @@ impl FromWorld for OneShotSystems {
             spawn_enemy: world.register_system(spawn_enemy),
             add_to_type: world.register_system(add_to_type),
             change_language: world.register_system(change_language),
+            despawn_menus: world.register_system(despawn_menus),
+            spawn_menu: world.register_system(spawn_menu),
         }
     }
 }

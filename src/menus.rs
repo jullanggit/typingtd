@@ -1,10 +1,9 @@
 use bevy::prelude::*;
-use strum::IntoEnumIterator;
 
 use crate::{
     oneshot::OneShotSystems,
-    states::{GameState, LanguageMenuSystemSet},
-    typing::{handle_action, Action, Language},
+    states::{GameState, PauseMenuSystemSet},
+    typing::{handle_action, Action},
 };
 
 pub struct MenuPlugin;
@@ -14,8 +13,8 @@ impl Plugin for MenuPlugin {
             Update,
             (
                 toggle_pause_menu,
-                button_interactions.in_set(LanguageMenuSystemSet),
-                add_menu_button_to_type.in_set(LanguageMenuSystemSet),
+                button_interactions.in_set(PauseMenuSystemSet),
+                add_menu_button_to_type.in_set(PauseMenuSystemSet),
             ),
         );
     }
@@ -23,7 +22,7 @@ impl Plugin for MenuPlugin {
 
 #[derive(Component, Debug, Clone, Reflect, Default)]
 #[reflect(Component)]
-struct Menu;
+pub struct Menu;
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
@@ -40,27 +39,30 @@ impl MenuButton {
 fn toggle_pause_menu(
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
-    menus: Query<Entity, With<Menu>>,
+    oneshot_systems: Res<OneShotSystems>,
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
-        match current_state.get() {
-            GameState::LanguageMenu => {
-                for menu in &menus {
-                    commands.entity(menu).despawn_recursive();
-                    next_state.set(GameState::Running);
-                }
-            }
-            GameState::Running => {
-                spawn_menu(commands);
-                next_state.set(GameState::LanguageMenu);
-            }
+        if current_state.get().is_menu_state() {
+            // Despawn all menus and set game state to running
+            commands.run_system(oneshot_systems.despawn_menus);
+            next_state.set(GameState::Running);
+        } else {
+            // Spawn Pause menu and set game state to pause menu
+            commands.run_system_with_input(oneshot_systems.spawn_menu, GameState::PauseMenu);
+            next_state.set(GameState::PauseMenu);
         }
     }
 }
 
-fn spawn_menu(mut commands: Commands) {
+pub fn despawn_menus(mut commands: Commands, menus: Query<Entity, With<Menu>>) {
+    for menu in &menus {
+        commands.entity(menu).despawn_recursive();
+    }
+}
+
+pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
     commands
         .spawn((
             NodeBundle {
@@ -82,7 +84,7 @@ fn spawn_menu(mut commands: Commands) {
             parent.spawn(TextBundle {
                 text: Text {
                     sections: vec![TextSection::new(
-                        "Languages",
+                        format!("{menu}"),
                         TextStyle {
                             font_size: 80.0,
                             color: Color::DARK_GRAY,
@@ -93,7 +95,10 @@ fn spawn_menu(mut commands: Commands) {
                 },
                 ..default()
             });
-            for language in Language::iter() {
+            for button_action in menu
+                .get_buttons()
+                .expect("Provided game state should be a menu state")
+            {
                 parent.spawn((
                     ButtonBundle {
                         style: Style {
@@ -106,7 +111,7 @@ fn spawn_menu(mut commands: Commands) {
                         background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
                         ..default()
                     },
-                    MenuButton::new(Action::ChangeLanguage(language.clone())),
+                    MenuButton::new(button_action),
                 ));
             }
         });

@@ -18,7 +18,6 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraPlugin;
 use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
-use fps::FpsPlugin;
 use map::MapPlugin;
 use menus::MenuPlugin;
 use oneshot::OneShotPlugin;
