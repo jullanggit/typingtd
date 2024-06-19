@@ -33,6 +33,15 @@ codegen-units = 256
 incremental = true
 codegen-backend = "cranelift"
 
+[profile.fast_compile_no_cranelift]
+inherits = "dev"
+opt-level = 0
+debug = 0
+strip = "none"
+lto = false
+codegen-units = 256
+incremental = true
+
 [profile.fast_runtime]
 inherits = "release"
 opt-level = 3
