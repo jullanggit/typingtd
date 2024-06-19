@@ -3,7 +3,10 @@ use std::fmt::Display;
 use bevy::prelude::*;
 use strum::IntoEnumIterator;
 
-use crate::typing::{Action, Language};
+use crate::{
+    oneshot::OneShotSystems,
+    typing::{Action, Language},
+};
 
 pub struct StatePlugin;
 impl Plugin for StatePlugin {
@@ -14,25 +17,42 @@ impl Plugin for StatePlugin {
     }
 }
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GameSystemSet;
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PauseMenuSystemSet;
+
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 pub enum GameState {
     #[default]
+    Loading,
     Running,
+    // Menus
+    MainMenu,
     PauseMenu,
     LanguageMenu,
+    UpgradeMenu,
 }
 impl GameState {
     /// If the State is a menu state, returns a the actions for the buttons in the menu
     pub fn get_buttons(&self) -> Option<Vec<Action>> {
         match self {
-            Self::Running => None,
-            Self::PauseMenu => Some(vec![Action::ChangeMenu(Self::LanguageMenu)]),
+            Self::Loading | Self::Running => None,
+            Self::MainMenu => Some(vec![Action::ChangeState(Self::Running)]),
+            Self::PauseMenu => Some(
+                [Self::LanguageMenu, Self::UpgradeMenu]
+                    .into_iter()
+                    .map(Action::ChangeState)
+                    .collect(),
+            ),
             Self::LanguageMenu => Some(Language::iter().map(Action::ChangeLanguage).collect()),
+            Self::UpgradeMenu => todo!(),
         }
     }
     pub const fn is_menu_state(&self) -> bool {
         match self {
-            Self::Running => false,
+            Self::Running | Self::Loading => false,
             _other => true,
         }
     }
@@ -43,9 +63,12 @@ impl Display for GameState {
             f,
             "{}",
             match self {
-                Self::Running => "Running",
+                Self::Loading => "Loading",
+                Self::Running => "Play",
+                Self::MainMenu => "Main Menu",
                 Self::PauseMenu => "Options",
                 Self::LanguageMenu => "Languages",
+                Self::UpgradeMenu => "Upgrades",
             }
         )
     }
@@ -58,8 +81,21 @@ fn not_in_menu_state(state: Res<State<GameState>>) -> bool {
     !state.is_menu_state()
 }
 
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GameSystemSet;
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PauseMenuSystemSet;
+/// Changes the state to the given state, spawns and despawns menus if necessary
+pub fn change_state(
+    In(state_to_set): In<GameState>,
+    mut commands: Commands,
+    oneshot_systems: Res<OneShotSystems>,
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if current_state.get().is_menu_state() {
+        // Despawn all menus and set game state to running
+        commands.run_system(oneshot_systems.despawn_menus);
+    }
+    if state_to_set.is_menu_state() {
+        // Spawn Pause menu and set game state to pause menu
+        commands.run_system_with_input(oneshot_systems.spawn_menu, state_to_set.clone());
+    }
+    next_state.set(state_to_set);
+}

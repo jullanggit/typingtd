@@ -1,6 +1,7 @@
 use crate::{
-    asset_loader::{Handles, SpritesLoadingStates},
+    asset_loader::Handles,
     physics::Position,
+    states::GameState,
     tower::{Tower, TowerType},
     upgrades::ArrowTowerUpgrades,
 };
@@ -13,7 +14,7 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Tile>()
             .register_type::<TileType>()
-            .add_systems(OnEnter(SpritesLoadingStates::Finished), setup_map);
+            .add_systems(OnExit(GameState::MainMenu), setup_map);
     }
 }
 

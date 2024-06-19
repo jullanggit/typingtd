@@ -9,14 +9,16 @@ use crate::{
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<MenuButton>().add_systems(
-            Update,
-            (
-                toggle_pause_menu,
-                button_interactions.in_set(PauseMenuSystemSet),
-                add_menu_button_to_type.in_set(PauseMenuSystemSet),
-            ),
-        );
+        app.register_type::<MenuButton>()
+            .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+            .add_systems(
+                Update,
+                (
+                    toggle_pause_menu,
+                    button_interactions.in_set(PauseMenuSystemSet),
+                    add_menu_button_to_type.in_set(PauseMenuSystemSet),
+                ),
+            );
     }
 }
 
@@ -36,22 +38,24 @@ impl MenuButton {
     }
 }
 
+fn spawn_main_menu(mut commands: Commands, oneshot_systems: Res<OneShotSystems>) {
+    commands.run_system_with_input(oneshot_systems.spawn_menu, GameState::MainMenu);
+}
+
 fn toggle_pause_menu(
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     oneshot_systems: Res<OneShotSystems>,
     current_state: Res<State<GameState>>,
-    mut next_state: ResMut<NextState<GameState>>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
+        // Toggles to_types
+        commands.run_system(oneshot_systems.toggle_to_type);
+
         if current_state.get().is_menu_state() {
-            // Despawn all menus and set game state to running
-            commands.run_system(oneshot_systems.despawn_menus);
-            next_state.set(GameState::Running);
+            commands.run_system_with_input(oneshot_systems.change_state, GameState::Running);
         } else {
-            // Spawn Pause menu and set game state to pause menu
-            commands.run_system_with_input(oneshot_systems.spawn_menu, GameState::PauseMenu);
-            next_state.set(GameState::PauseMenu);
+            commands.run_system_with_input(oneshot_systems.change_state, GameState::PauseMenu);
         }
     }
 }

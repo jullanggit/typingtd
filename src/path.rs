@@ -1,10 +1,10 @@
 use crate::{
-    asset_loader::{Handles, SpritesLoadingStates},
+    asset_loader::Handles,
     enemy::Enemy,
     map::{to_rgba_index, to_world},
     physics::{apply_velocity, Position, Velocity},
     projectile::Speed,
-    states::GameSystemSet,
+    states::{GameState, GameSystemSet},
 };
 use bevy::prelude::*;
 use strum::{EnumIter, IntoEnumIterator};
@@ -18,7 +18,7 @@ impl Plugin for PathPlugin {
                 Update,
                 (follow_path.after(apply_velocity)).in_set(GameSystemSet),
             )
-            .add_systems(OnEnter(SpritesLoadingStates::Finished), load_path);
+            .add_systems(OnExit(GameState::MainMenu), load_path);
     }
 }
 
@@ -81,9 +81,6 @@ fn follow_path(
     mut enemies: Query<(&mut PathState, &Speed, &mut Velocity, &mut Position), With<Enemy>>,
     path: Res<Path>,
 ) {
-    if path.parts.is_empty() {
-        return;
-    }
     for (mut path_state, speed, mut velocity, mut position) in &mut enemies {
         if path_state.index < path.parts.len() - 1 {
             let direction =

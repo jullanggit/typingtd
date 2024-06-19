@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use bevy_common_assets::json::JsonAssetPlugin;
 
-use crate::typing::Wordlists;
+use crate::{states::GameState, typing::Wordlists};
 
 #[derive(Resource, Debug, Default, AssetCollection)]
 pub struct Handles {
@@ -27,19 +27,11 @@ pub struct AssetLoaderPlugin;
 impl Plugin for AssetLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Handles>()
-            .init_state::<SpritesLoadingStates>()
             .add_loading_state(
-                LoadingState::new(SpritesLoadingStates::Loading)
-                    .continue_to_state(SpritesLoadingStates::Finished)
+                LoadingState::new(GameState::Loading)
+                    .continue_to_state(GameState::MainMenu)
                     .load_collection::<Handles>(),
             )
             .add_plugins(JsonAssetPlugin::<Wordlists>::new(&["words.json"]));
     }
-}
-
-#[derive(Clone, Eq, PartialEq, Default, States, Hash, Debug)]
-pub enum SpritesLoadingStates {
-    #[default]
-    Loading,
-    Finished,
 }

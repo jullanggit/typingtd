@@ -64,7 +64,7 @@ impl Wordlists {
 pub enum Action {
     ShootArrow(Position, ArrowTowerUpgrades),
     ChangeLanguage(Language),
-    ChangeMenu(GameState),
+    ChangeState(GameState),
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,7 +74,7 @@ impl Display for Action {
             match self {
                 Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
                 Self::ChangeLanguage(language) => format!("{language:?}"),
-                Self::ChangeMenu(menu) => format!("{menu}"),
+                Self::ChangeState(menu) => format!("{menu}"),
             }
         )
     }
@@ -86,6 +86,7 @@ pub struct ToType {
     pub word: String,
     pub progress: usize,
     pub action: Action,
+    pub active: bool,
 }
 impl ToType {
     pub const fn new(word: String, action: Action) -> Self {
@@ -93,6 +94,7 @@ impl ToType {
             word,
             progress: 0,
             action,
+            active: true,
         }
     }
 }
@@ -107,6 +109,7 @@ fn set_device_language(mut lanugage: ResMut<Language>) {
     }
 }
 
+/// Handles the input for the `ToTypes`
 fn read_input(mut chars: EventReader<ReceivedCharacter>, mut to_types: Query<&mut ToType>) {
     // For each character typed
     chars.read().for_each(|event| {
@@ -117,15 +120,27 @@ fn read_input(mut chars: EventReader<ReceivedCharacter>, mut to_types: Query<&mu
             .next()
             .expect("Character should exist if there is an event for it");
 
-        for mut to_type in &mut to_types {
-            if to_type.word.chars().nth(to_type.progress) == Some(character) {
-                to_type.progress += 1;
-            } else {
-                to_type.progress = 0;
-            }
+        // If the character isnt the escape buttons character (so that going into the pause menu
+        // doesnt reset the progress)
+        if character != '\x1B' {
+            to_types
+                .iter_mut()
+                // Filter out inactive to_types
+                .filter(|to_type| to_type.active)
+                .for_each(|mut to_type| {
+                    // If the typed character is the next character of the word
+                    if to_type.word.chars().nth(to_type.progress) == Some(character) {
+                        to_type.progress += 1;
+                    // Otherwise reset the progress
+                    } else {
+                        to_type.progress = 0;
+                    }
+                });
         }
     });
 }
+
+/// Executes the actions of any completed `ToTypes`, despawns them afterwards
 fn handle_to_types(
     query: Query<(&ToType, &Parent, Entity)>,
     mut commands: Commands,
@@ -155,9 +170,8 @@ pub fn handle_action(
         Action::ChangeLanguage(language) => {
             commands.run_system_with_input(oneshot_systems.change_language, language);
         }
-        Action::ChangeMenu(menu) => {
-            commands.run_system(oneshot_systems.despawn_menus);
-            commands.run_system_with_input(oneshot_systems.spawn_menu, menu);
+        Action::ChangeState(state) => {
+            commands.run_system_with_input(oneshot_systems.change_state, state);
         }
     }
 }
@@ -243,12 +257,26 @@ pub fn add_to_type(
     });
 }
 
+/// Changes character color based on word completion
 fn handle_text_display(mut query: Query<(&ToType, &mut Text)>) {
     for (to_type, mut text) in &mut query {
         if text.sections[0].value.chars().count() != to_type.progress {
             text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
 
             text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
+        }
+    }
+}
+
+/// Toggles the "active" state of all `ToTypes`, hides them if inactive
+pub fn toggle_to_type(mut to_types: Query<(&mut ToType, &mut Visibility)>) {
+    for (mut to_type, mut visibility) in &mut to_types {
+        to_type.active = !to_type.active;
+
+        if to_type.active {
+            *visibility = Visibility::Inherited;
+        } else {
+            *visibility = Visibility::Hidden;
         }
     }
 }
