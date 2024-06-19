@@ -18,6 +18,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraPlugin;
 use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
+use fps::FpsPlugin;
 use map::MapPlugin;
 use menus::MenuPlugin;
 use oneshot::OneShotPlugin;
@@ -79,7 +80,8 @@ trait DebugPlugin {
 impl DebugPlugin for App {
     fn add_debug_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {
         #[cfg(debug_assertions)]
-        self.add_plugins(plugin)
+        self.add_plugins(plugin);
+        self
     }
 }
 
