@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     oneshot::OneShotSystems,
     states::{GameState, PauseMenuSystemSet},
+    tower::Tower,
     typing::{handle_action, Action},
 };
 
@@ -11,6 +12,10 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MenuButton>()
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+            .add_systems(
+                OnEnter(GameState::UpgradeTowerSelectionMenu),
+                add_tower_selection_to_types,
+            )
             .add_systems(
                 Update,
                 (
@@ -54,6 +59,7 @@ fn toggle_pause_menu(
 
         if current_state.get().is_menu_state() {
             commands.run_system_with_input(oneshot_systems.change_state, GameState::Running);
+            commands.run_system(oneshot_systems.remove_inactive_to_types);
         } else {
             commands.run_system_with_input(oneshot_systems.change_state, GameState::PauseMenu);
         }
@@ -119,6 +125,23 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                 ));
             }
         });
+}
+
+fn add_tower_selection_to_types(
+    towers: Query<Entity, With<Tower>>,
+    mut commands: Commands,
+    oneshot_systems: Res<OneShotSystems>,
+) {
+    for tower in &towers {
+        commands.run_system_with_input(
+            oneshot_systems.add_to_type,
+            (
+                tower,
+                Action::ChangeState(GameState::TowerUpgradeMenu(tower)),
+                None,
+            ),
+        );
+    }
 }
 
 fn add_menu_button_to_type(

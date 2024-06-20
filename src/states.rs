@@ -6,6 +6,7 @@ use strum::IntoEnumIterator;
 use crate::{
     oneshot::OneShotSystems,
     typing::{Action, Language},
+    upgrades::ArrowTowerUpgrade,
 };
 
 pub struct StatePlugin;
@@ -32,7 +33,10 @@ pub enum GameState {
     MainMenu,
     PauseMenu,
     LanguageMenu,
-    UpgradeMenu,
+    // The menu in which you choose which tower to upgrade
+    UpgradeTowerSelectionMenu,
+    // The menu in which you choose which upgrade
+    TowerUpgradeMenu(Entity),
 }
 impl GameState {
     /// If the State is a menu state, returns a the actions for the buttons in the menu
@@ -41,13 +45,18 @@ impl GameState {
             Self::Loading | Self::Running => None,
             Self::MainMenu => Some(vec![Action::ChangeState(Self::Running)]),
             Self::PauseMenu => Some(
-                [Self::LanguageMenu, Self::UpgradeMenu]
+                [Self::LanguageMenu, Self::UpgradeTowerSelectionMenu]
                     .into_iter()
                     .map(Action::ChangeState)
                     .collect(),
             ),
             Self::LanguageMenu => Some(Language::iter().map(Action::ChangeLanguage).collect()),
-            Self::UpgradeMenu => todo!(),
+            Self::UpgradeTowerSelectionMenu => Some(Vec::new()),
+            Self::TowerUpgradeMenu(entity) => Some(
+                ArrowTowerUpgrade::iter()
+                    .map(|upgrade| Action::UpgradeTower(*entity, upgrade))
+                    .collect(),
+            ),
         }
     }
     pub const fn is_menu_state(&self) -> bool {
@@ -68,7 +77,7 @@ impl Display for GameState {
                 Self::MainMenu => "Main Menu",
                 Self::PauseMenu => "Options",
                 Self::LanguageMenu => "Languages",
-                Self::UpgradeMenu => "Upgrades",
+                Self::UpgradeTowerSelectionMenu | Self::TowerUpgradeMenu(_) => "Upgrades",
             }
         )
     }

@@ -27,6 +27,7 @@ use projectile::ProjectilePlugin;
 use states::StatePlugin;
 use tower::TowerPlugin;
 use typing::TypingPlugin;
+use upgrades::UpgradePlugin;
 use wasm::WasmPlugin;
 
 mod asset_loader;
@@ -68,6 +69,7 @@ fn main() {
             EnemyPlugin,
             DirectorPlugin,
             MenuPlugin,
+            UpgradePlugin,
             StatePlugin,
         ))
         .run();

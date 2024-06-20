@@ -12,7 +12,7 @@ use crate::{
     physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
     states::GameState,
-    upgrades::ArrowTowerUpgrades,
+    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 
 // Plugin
@@ -65,6 +65,7 @@ pub enum Action {
     ShootArrow(Position, ArrowTowerUpgrades),
     ChangeLanguage(Language),
     ChangeState(GameState),
+    UpgradeTower(Entity, ArrowTowerUpgrade),
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -75,6 +76,7 @@ impl Display for Action {
                 Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
                 Self::ChangeLanguage(language) => format!("{language:?}"),
                 Self::ChangeState(menu) => format!("{menu}"),
+                Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
             }
         )
     }
@@ -172,6 +174,9 @@ pub fn handle_action(
         }
         Action::ChangeState(state) => {
             commands.run_system_with_input(oneshot_systems.change_state, state);
+        }
+        Action::UpgradeTower(tower, upgrade) => {
+            commands.run_system_with_input(oneshot_systems.upgrade_tower, (tower, upgrade));
         }
     }
 }
@@ -277,6 +282,18 @@ pub fn toggle_to_type(mut to_types: Query<(&mut ToType, &mut Visibility)>) {
             *visibility = Visibility::Inherited;
         } else {
             *visibility = Visibility::Hidden;
+        }
+    }
+}
+
+pub fn remove_inactive_to_types(
+    to_types: Query<(Entity, &Parent, &ToType)>,
+    mut commands: Commands,
+) {
+    for (entity, parent, to_type) in &to_types {
+        if !to_type.active {
+            commands.entity(parent.get()).remove_children(&[entity]);
+            commands.entity(entity).despawn();
         }
     }
 }
