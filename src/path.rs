@@ -13,7 +13,8 @@ pub struct PathPlugin;
 impl Plugin for PathPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Path>()
-            .register_type::<(Direction, Path)>()
+            .register_type::<Path>()
+            .register_type::<Direction>()
             .add_systems(
                 Update,
                 (follow_path.after(apply_velocity)).in_set(GameSystemSet),

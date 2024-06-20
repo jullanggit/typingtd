@@ -15,7 +15,9 @@ pub const ENEMY_SPEED: f32 = 50.;
 pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<(Health, Enemy, Attack)>()
+        app.register_type::<Health>()
+            .register_type::<Enemy>()
+            .register_type::<Attack>()
             .init_resource::<Money>()
             .add_systems(
                 Update,

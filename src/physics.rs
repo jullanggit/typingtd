@@ -5,7 +5,10 @@ use crate::states::GameSystemSet;
 pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<(Velocity, Position, Rotation, Layer)>()
+        app.register_type::<Velocity>()
+            .register_type::<Position>()
+            .register_type::<Rotation>()
+            .register_type::<Layer>()
             .add_systems(
                 Update,
                 (
