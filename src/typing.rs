@@ -12,7 +12,7 @@ use crate::{
     physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
     states::GameState,
-    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
+    upgrades::{ArrowTowerUpgradeType, ArrowTowerUpgrades},
 };
 
 // Plugin
@@ -65,7 +65,7 @@ pub enum Action {
     ShootArrow(Position, ArrowTowerUpgrades),
     ChangeLanguage(Language),
     ChangeState(GameState),
-    UpgradeTower(Entity, ArrowTowerUpgrade),
+    UpgradeTower(Entity, ArrowTowerUpgradeType),
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

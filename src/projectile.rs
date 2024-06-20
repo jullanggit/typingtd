@@ -1,7 +1,7 @@
 use crate::{
     enemy::{Attack, Enemy, Health},
     physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
-    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
+    upgrades::{ArrowTowerUpgradeType, ArrowTowerUpgrades},
 };
 use bevy::prelude::*;
 
@@ -11,6 +11,7 @@ pub struct ProjectilePlugin;
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Projectile>()
+            .register_type::<Tracking>()
             .add_systems(Update, track_enemy.before(apply_velocity));
     }
 }
@@ -33,7 +34,14 @@ pub struct Projectile;
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
-struct Tracking;
+struct Tracking {
+    rotation_speed: f32,
+}
+impl Tracking {
+    const fn new(rotation_speed: f32) -> Self {
+        Self { rotation_speed }
+    }
+}
 
 // Arrow Tower
 /// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
@@ -48,42 +56,74 @@ pub fn spawn_arrow(
         return;
     };
 
-    let direction = (closest_enemy - arrow_position.value).normalize();
-    let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
+    let direction_to_enemy_vec2 = (closest_enemy - arrow_position.value).normalize();
+    let direction_to_enemy = Quat::from_rotation_arc_2d(Vec2::X, direction_to_enemy_vec2);
 
-    let mut arrow = commands.spawn((
-        Name::new("Arrow"),
-        arrow_position,
-        Rotation::new(direction_quat),
-        Projectile,
-        speed,
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgba_u8(68, 47, 47, 255),
-                custom_size: Some(Vec2::new(45., 10.)),
+    let shot_amount = upgrades
+        .upgrades
+        .iter()
+        .find_map(|upgrade| {
+            if upgrade.upgrade_type == ArrowTowerUpgradeType::Multishot {
+                Some(upgrade.level + 1)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(0);
+
+    let arrow_angle = 30.; // Angle between arrows
+    for i in 0..=shot_amount {
+        // Difference in rotation from the nearest enemy
+        let i = f32::from(i);
+
+        let angle = (i - (shot_amount) as f32 / 2.) * arrow_angle;
+        let rotation_difference = Quat::from_rotation_z(angle.to_radians());
+
+        let final_rotation = direction_to_enemy * rotation_difference;
+
+        let mut arrow = commands.spawn((
+            Name::new("Arrow"),
+            arrow_position,
+            Rotation::new(final_rotation),
+            Projectile,
+            speed,
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgba_u8(68, 47, 47, 255),
+                    custom_size: Some(Vec2::new(45., 10.)),
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        Obb::new(Vec2::new(45., 10.)),
-        Velocity::new((direction_quat * Vec3::X).truncate() * speed.value),
-        Layer::new(1.),
-        Attack::new(1.),
-        Health::new(
-            // Piercing value, or 1
-            upgrades
-                .upgrades
-                .iter()
-                .find_map(|upgrade| match upgrade {
-                    ArrowTowerUpgrade::Piercing(value) => Some(*value),
-                    _ => None,
-                })
-                .unwrap_or(1.),
-        ),
-    ));
-    if upgrades.upgrades.contains(&ArrowTowerUpgrade::Tracking) {
-        arrow.insert(Tracking);
-    };
+            Obb::new(Vec2::new(45., 10.)),
+            Velocity::new((final_rotation * Vec3::X).truncate() * speed.value),
+            Layer::new(1.),
+            Attack::new(1.),
+            Health::new(
+                // Piercing value, or 1
+                upgrades
+                    .upgrades
+                    .iter()
+                    .find_map(|upgrade| {
+                        if upgrade.upgrade_type == ArrowTowerUpgradeType::Piercing {
+                            Some(upgrade.level)
+                        } else {
+                            None
+                        }
+                    })
+                    .map_or(1., |upgrade| upgrade as f64),
+            ),
+        ));
+        if let Some(level) = upgrades.upgrades.iter().find_map(|upgrade| {
+            if upgrade.upgrade_type == ArrowTowerUpgradeType::Tracking {
+                Some(upgrade.level)
+            } else {
+                None
+            }
+        }) {
+            arrow.insert(Tracking::new(1.5 * (level + 1) as f32));
+        };
+    }
 }
 
 fn closest_enemy(
@@ -104,11 +144,12 @@ fn closest_enemy(
 fn track_enemy(
     enemies: Query<&Position, With<Enemy>>,
     mut tracking_arrows: Query<
-        (&Position, &Speed, &mut Rotation, &mut Velocity),
-        (With<Tracking>, Without<Enemy>),
+        (&Position, &Speed, &Tracking, &mut Rotation, &mut Velocity),
+        Without<Enemy>,
     >,
+    time: Res<Time>,
 ) {
-    for (arrow_position, speed, mut rotation, mut velocity) in &mut tracking_arrows {
+    for (arrow_position, speed, tracking, mut rotation, mut velocity) in &mut tracking_arrows {
         // Get the closest enemy, exit if there arent any
         let Some(closest_enemy) = closest_enemy(&enemies, *arrow_position) else {
             return;
@@ -116,11 +157,13 @@ fn track_enemy(
 
         // Get the rotation
         let direction = (closest_enemy - arrow_position.value).normalize();
-        let direction_quat = Quat::from_rotation_arc_2d(Vec2::X, direction);
+        let target_rotation = Quat::from_rotation_arc_2d(Vec2::X, direction);
 
-        rotation.value = direction_quat;
+        // Calculate the rotation step based on the tracking speed and delta time
+        let rotation_speed = tracking.rotation_speed * time.delta_seconds();
+        rotation.value = rotation.value.slerp(target_rotation, rotation_speed);
 
         // readjust the velocity
-        velocity.value = (direction_quat * Vec3::X).truncate() * speed.value;
+        velocity.value = (rotation.value * Vec3::X).truncate() * speed.value;
     }
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use bevy::prelude::*;
-use strum::{EnumDiscriminants, EnumIter};
+use strum::EnumIter;
 
 pub struct UpgradePlugin;
 impl Plugin for UpgradePlugin {
@@ -10,20 +10,43 @@ impl Plugin for UpgradePlugin {
     }
 }
 
-#[derive(Debug, Clone, Reflect, PartialEq, EnumIter, EnumDiscriminants)]
-pub enum ArrowTowerUpgrade {
-    Piercing(f64),
-    Multishot(f64),
+#[derive(Debug, Clone, Reflect, PartialEq, Eq, EnumIter)]
+pub enum ArrowTowerUpgradeType {
+    Piercing,
+    Multishot,
     Tracking,
 }
-impl Display for ArrowTowerUpgrade {
+impl ArrowTowerUpgradeType {
+    const fn max_level(&self) -> u8 {
+        match self {
+            Self::Piercing => u8::MAX,
+            Self::Multishot => 11,
+            Self::Tracking => 5,
+        }
+    }
+}
+#[derive(Debug, Clone, Reflect, PartialEq, Eq)]
+pub struct ArrowTowerUpgrade {
+    pub upgrade_type: ArrowTowerUpgradeType,
+    pub level: u8,
+}
+impl ArrowTowerUpgrade {
+    pub const fn new(upgrade_type: ArrowTowerUpgradeType, level: u8) -> Self {
+        Self {
+            upgrade_type,
+            level,
+        }
+    }
+}
+
+impl Display for ArrowTowerUpgradeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Self::Piercing(_) => "Piercing",
-                Self::Multishot(_) => "Multishot",
+                Self::Piercing => "Piercing",
+                Self::Multishot => "Multishot",
                 Self::Tracking => "Tracking",
             }
         )
@@ -38,7 +61,7 @@ pub struct ArrowTowerUpgrades {
 }
 
 pub fn upgrade_tower(
-    In((tower, upgrade)): In<(Entity, ArrowTowerUpgrade)>,
+    In((tower, upgrade)): In<(Entity, ArrowTowerUpgradeType)>,
     mut upgrades: Query<&mut ArrowTowerUpgrades>,
 ) {
     let mut tower_upgrades = upgrades
@@ -46,19 +69,19 @@ pub fn upgrade_tower(
         .expect("Provided Entity should exist / have the TowerUpgrades component");
 
     // Check if the tower already has the given upgrade
-    if let Some(present_upgrade) = tower_upgrades.upgrades.iter_mut().find(|present_upgrade| {
-        // Check that matches even if contained data is different
-        ArrowTowerUpgradeDiscriminants::from(upgrade.clone()) == (*present_upgrade).clone().into()
-    }) {
+    if let Some(present_upgrade) = tower_upgrades
+        .upgrades
+        .iter_mut()
+        .find(|present_upgrade| present_upgrade.upgrade_type == upgrade)
+    {
         // If possible, upgrade the level of the upgrade
-        match present_upgrade {
-            ArrowTowerUpgrade::Piercing(ref mut level)
-            | ArrowTowerUpgrade::Multishot(ref mut level) => *level += 1.,
-
-            ArrowTowerUpgrade::Tracking => {}
+        if present_upgrade.level < present_upgrade.upgrade_type.max_level() {
+            present_upgrade.level += 1;
         }
     // Otherwise add the upgrade
     } else {
-        tower_upgrades.upgrades.push(upgrade);
+        tower_upgrades
+            .upgrades
+            .push(ArrowTowerUpgrade::new(upgrade, 0));
     }
 }
