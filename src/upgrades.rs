@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use strum::EnumIter;
 
 pub struct UpgradePlugin;
@@ -10,7 +10,7 @@ impl Plugin for UpgradePlugin {
     }
 }
 
-#[derive(Debug, Clone, Reflect, PartialEq, Eq, EnumIter)]
+#[derive(Debug, Clone, Reflect, PartialEq, Eq, Hash, EnumIter)]
 pub enum ArrowTowerUpgradeType {
     Piercing,
     Multishot,
@@ -22,19 +22,6 @@ impl ArrowTowerUpgradeType {
             Self::Piercing => u8::MAX,
             Self::Multishot => 11,
             Self::Tracking => 5,
-        }
-    }
-}
-#[derive(Debug, Clone, Reflect, PartialEq, Eq)]
-pub struct ArrowTowerUpgrade {
-    pub upgrade_type: ArrowTowerUpgradeType,
-    pub level: u8,
-}
-impl ArrowTowerUpgrade {
-    pub const fn new(upgrade_type: ArrowTowerUpgradeType, level: u8) -> Self {
-        Self {
-            upgrade_type,
-            level,
         }
     }
 }
@@ -57,7 +44,7 @@ impl Display for ArrowTowerUpgradeType {
 #[reflect(Component)]
 #[repr(transparent)]
 pub struct ArrowTowerUpgrades {
-    pub upgrades: Vec<ArrowTowerUpgrade>,
+    pub upgrades: HashMap<ArrowTowerUpgradeType, u8>,
 }
 
 pub fn upgrade_tower(
@@ -69,19 +56,13 @@ pub fn upgrade_tower(
         .expect("Provided Entity should exist / have the TowerUpgrades component");
 
     // Check if the tower already has the given upgrade
-    if let Some(present_upgrade) = tower_upgrades
-        .upgrades
-        .iter_mut()
-        .find(|present_upgrade| present_upgrade.upgrade_type == upgrade)
-    {
+    if let Some(level) = tower_upgrades.upgrades.get_mut(&upgrade) {
         // If possible, upgrade the level of the upgrade
-        if present_upgrade.level < present_upgrade.upgrade_type.max_level() {
-            present_upgrade.level += 1;
+        if *level < upgrade.max_level() {
+            *level += 1;
         }
     // Otherwise add the upgrade
     } else {
-        tower_upgrades
-            .upgrades
-            .push(ArrowTowerUpgrade::new(upgrade, 0));
+        tower_upgrades.upgrades.insert(upgrade, 0);
     }
 }

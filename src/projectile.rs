@@ -61,22 +61,15 @@ pub fn spawn_arrow(
 
     let shot_amount = upgrades
         .upgrades
-        .iter()
-        .find_map(|upgrade| {
-            if upgrade.upgrade_type == ArrowTowerUpgradeType::Multishot {
-                Some(upgrade.level + 1)
-            } else {
-                None
-            }
-        })
-        .unwrap_or(0);
+        .get(&ArrowTowerUpgradeType::Multishot)
+        .map_or(0, |amount| amount + 1);
 
     let arrow_angle = 30.; // Angle between arrows
     for i in 0..=shot_amount {
         // Difference in rotation from the nearest enemy
         let i = f32::from(i);
 
-        let angle = (i - (shot_amount) as f32 / 2.) * arrow_angle;
+        let angle = (i - f32::from(shot_amount) / 2.) * arrow_angle;
         let rotation_difference = Quat::from_rotation_z(angle.to_radians());
 
         let final_rotation = direction_to_enemy * rotation_difference;
@@ -103,25 +96,13 @@ pub fn spawn_arrow(
                 // Piercing value, or 1
                 upgrades
                     .upgrades
-                    .iter()
-                    .find_map(|upgrade| {
-                        if upgrade.upgrade_type == ArrowTowerUpgradeType::Piercing {
-                            Some(upgrade.level)
-                        } else {
-                            None
-                        }
-                    })
-                    .map_or(1., |upgrade| upgrade as f64),
+                    .get(&ArrowTowerUpgradeType::Piercing)
+                    // Add two to the upgrade level, as base level is 0
+                    .map_or(1., |upgrade| f64::from(upgrade + 2)),
             ),
         ));
-        if let Some(level) = upgrades.upgrades.iter().find_map(|upgrade| {
-            if upgrade.upgrade_type == ArrowTowerUpgradeType::Tracking {
-                Some(upgrade.level)
-            } else {
-                None
-            }
-        }) {
-            arrow.insert(Tracking::new(1.5 * (level + 1) as f32));
+        if let Some(level) = upgrades.upgrades.get(&ArrowTowerUpgradeType::Tracking) {
+            arrow.insert(Tracking::new(1.5 * f32::from(level + 1)));
         };
     }
 }
