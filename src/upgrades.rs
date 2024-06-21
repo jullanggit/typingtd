@@ -20,7 +20,7 @@ impl ArrowTowerUpgradeType {
     const fn max_level(&self) -> u8 {
         match self {
             Self::Piercing => u8::MAX,
-            Self::Multishot => 11,
+            Self::Multishot => 30,
             Self::Tracking => 5,
         }
     }

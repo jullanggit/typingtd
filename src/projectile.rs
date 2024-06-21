@@ -45,7 +45,6 @@ impl Tracking {
 
 // Arrow Tower
 /// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
-/// TODO: implement multishot
 pub fn spawn_arrow(
     In((arrow_position, speed, upgrades)): In<(Position, Speed, ArrowTowerUpgrades)>,
     enemies: Query<&Position, With<Enemy>>,
@@ -64,7 +63,12 @@ pub fn spawn_arrow(
         .get(&ArrowTowerUpgradeType::Multishot)
         .map_or(0, |amount| amount + 1);
 
-    let arrow_angle = 30.; // Angle between arrows
+    // Angle between arrows
+    let arrow_angle = if shot_amount < 12 {
+        30.
+    } else {
+        360. / f32::from(shot_amount)
+    };
     for i in 0..=shot_amount {
         // Difference in rotation from the nearest enemy
         let i = f32::from(i);
