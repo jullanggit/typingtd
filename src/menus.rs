@@ -113,6 +113,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                     ButtonBundle {
                         style: Style {
                             width: Val::Px(200.0),
+                            width: Val::Px(button_action.to_string().len() as f32 * 30.),
                             height: Val::Px(80.0),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
