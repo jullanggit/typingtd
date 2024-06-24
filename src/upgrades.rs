@@ -7,7 +7,9 @@ use bevy::prelude::*;
 use strum::{EnumCount, EnumIter};
 
 use crate::{
-    enemy::Money, states::PauseMenuSystemSet, typing::{Action, ToType}
+    enemy::Money,
+    states::PauseMenuSystemSet,
+    typing::{Action, ToType},
 };
 
 pub struct UpgradePlugin;
