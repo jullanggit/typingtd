@@ -95,11 +95,13 @@ pub fn spawn_arrow(
             Attack::new(1.),
             Health::new(
                 // Piercing value, or 1
-                (upgrades[ArrowTowerUpgrade::Piercing] + 1).into()
+                (upgrades[ArrowTowerUpgrade::Piercing] + 1).into(),
             ),
         ));
         if upgrades[ArrowTowerUpgrade::Tracking] > 0 {
-            arrow.insert(Tracking::new(1.5 * f32::from(upgrades[ArrowTowerUpgrade::Tracking])));
+            arrow.insert(Tracking::new(
+                1.5 * f32::from(upgrades[ArrowTowerUpgrade::Tracking]),
+            ));
         };
     }
 }

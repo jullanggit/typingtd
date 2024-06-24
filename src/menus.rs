@@ -4,8 +4,7 @@ use crate::{
     oneshot::OneShotSystems,
     states::{GameState, PauseMenuSystemSet},
     tower::Tower,
-    typing::{handle_action, Action, ToType},
-    upgrades::ArrowTowerUpgrades,
+    typing::{handle_action, Action},
 };
 
 pub struct MenuPlugin;
@@ -23,7 +22,6 @@ impl Plugin for MenuPlugin {
                     toggle_pause_menu,
                     button_interactions.in_set(PauseMenuSystemSet),
                     add_menu_button_to_type.in_set(PauseMenuSystemSet),
-                    update_upgrade_price.in_set(PauseMenuSystemSet),
                 ),
             );
     }
@@ -160,25 +158,6 @@ fn add_menu_button_to_type(
                 Some(format!("{}", menu_button.action)),
             ),
         );
-    }
-}
-
-pub fn update_upgrade_price(
-    mut to_types: Query<&mut ToType>,
-    upgrades: Query<&ArrowTowerUpgrades>,
-) {
-    for mut to_type in &mut to_types {
-        if let Action::UpgradeTower(entity, upgrade) = &to_type.action {
-            // Get the level of the upgrade
-            let level = upgrades
-                .get(*entity)
-                .expect("Passed entity should have Upgrades")
-                [*upgrade];
-
-            let cost = upgrade.cost(level);
-
-            to_type.word = format!("{upgrade} {cost}$");
-        }
     }
 }
 

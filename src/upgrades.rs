@@ -6,12 +6,15 @@ use std::{
 use bevy::prelude::*;
 use strum::{EnumCount, EnumIter};
 
-use crate::enemy::Money;
+use crate::{
+    enemy::Money, states::PauseMenuSystemSet, typing::{Action, ToType}
+};
 
 pub struct UpgradePlugin;
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<ArrowTowerUpgrades>();
+        app.register_type::<ArrowTowerUpgrades>()
+            .add_systems(Update, update_upgrade_price.in_set(PauseMenuSystemSet));
     }
 }
 
@@ -84,5 +87,23 @@ pub fn upgrade_tower(
     if level < upgrade.max_level() && money.value >= upgrade_cost {
         money.value -= upgrade_cost;
         tower_upgrades[upgrade] += 1;
+    }
+}
+
+pub fn update_upgrade_price(
+    mut to_types: Query<&mut ToType>,
+    upgrades: Query<&ArrowTowerUpgrades>,
+) {
+    for mut to_type in &mut to_types {
+        if let Action::UpgradeTower(entity, upgrade) = &to_type.action {
+            // Get the level of the upgrade
+            let level = upgrades
+                .get(*entity)
+                .expect("Passed entity should have Upgrades")[*upgrade];
+
+            let cost = upgrade.cost(level);
+
+            to_type.word = format!("{upgrade} {cost}$");
+        }
     }
 }
