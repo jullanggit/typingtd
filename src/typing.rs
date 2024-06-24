@@ -263,13 +263,11 @@ pub fn add_to_type(
 }
 
 /// Changes character color based on word completion
-fn handle_text_display(mut query: Query<(&ToType, &mut Text)>) {
+fn handle_text_display(mut query: Query<(&ToType, &mut Text), Changed<ToType>>) {
     for (to_type, mut text) in &mut query {
-        if text.sections[0].value.chars().count() != to_type.progress {
-            text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
+        text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
 
-            text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
-        }
+        text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
     }
 }
 
