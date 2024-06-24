@@ -1,7 +1,7 @@
 use crate::{
     enemy::{Attack, Enemy, Health},
     physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
-    upgrades::{ArrowTowerUpgradeType, ArrowTowerUpgrades},
+    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 use bevy::prelude::*;
 
@@ -58,22 +58,19 @@ pub fn spawn_arrow(
     let direction_to_enemy_vec2 = (closest_enemy - arrow_position.value).normalize();
     let direction_to_enemy = Quat::from_rotation_arc_2d(Vec2::X, direction_to_enemy_vec2);
 
-    let shot_amount = upgrades
-        .upgrades
-        .get(&ArrowTowerUpgradeType::Multishot)
-        .unwrap_or(&0);
+    let shot_amount = upgrades[ArrowTowerUpgrade::Multishot];
 
     // Angle between arrows
-    let arrow_angle = if *shot_amount < 12 {
+    let arrow_angle = if shot_amount < 12 {
         30.
     } else {
-        360. / f32::from(*shot_amount)
+        360. / f32::from(shot_amount)
     };
-    for i in 0..=*shot_amount {
+    for i in 0..=shot_amount {
         // Difference in rotation from the nearest enemy
         let i = f32::from(i);
 
-        let angle = (i - f32::from(*shot_amount) / 2.) * arrow_angle;
+        let angle = (i - f32::from(shot_amount) / 2.) * arrow_angle;
         let rotation_difference = Quat::from_rotation_z(angle.to_radians());
 
         let final_rotation = direction_to_enemy * rotation_difference;
@@ -98,15 +95,11 @@ pub fn spawn_arrow(
             Attack::new(1.),
             Health::new(
                 // Piercing value, or 1
-                upgrades
-                    .upgrades
-                    .get(&ArrowTowerUpgradeType::Piercing)
-                    // Add two to the upgrade level, as base level is 0
-                    .map_or(1., |upgrade| f64::from(upgrade + 2)),
+                (upgrades[ArrowTowerUpgrade::Piercing] + 1).into()
             ),
         ));
-        if let Some(level) = upgrades.upgrades.get(&ArrowTowerUpgradeType::Tracking) {
-            arrow.insert(Tracking::new(1.5 * f32::from(*level)));
+        if upgrades[ArrowTowerUpgrade::Tracking] > 0 {
+            arrow.insert(Tracking::new(1.5 * f32::from(upgrades[ArrowTowerUpgrade::Tracking])));
         };
     }
 }

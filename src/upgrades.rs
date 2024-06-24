@@ -1,7 +1,10 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+};
 
-use bevy::{prelude::*, utils::HashMap};
-use strum::EnumIter;
+use bevy::prelude::*;
+use strum::{EnumCount, EnumIter};
 
 use crate::enemy::Money;
 
@@ -12,14 +15,14 @@ impl Plugin for UpgradePlugin {
     }
 }
 
-#[derive(Debug, Clone, Reflect, PartialEq, Eq, Hash, EnumIter)]
-pub enum ArrowTowerUpgradeType {
+#[derive(Debug, Clone, Copy, Reflect, PartialEq, Eq, Hash, EnumIter, EnumCount)]
+pub enum ArrowTowerUpgrade {
     Piercing,
     Multishot,
     Tracking,
 }
-impl ArrowTowerUpgradeType {
-    const fn max_level(&self) -> u8 {
+impl ArrowTowerUpgrade {
+    const fn max_level(self) -> u8 {
         match self {
             Self::Piercing => u8::MAX,
             Self::Multishot => 30,
@@ -27,13 +30,13 @@ impl ArrowTowerUpgradeType {
         }
     }
     // TODO: Calculate cost properly
-    pub fn cost(&self, level: u8) -> f64 {
+    pub fn cost(self, level: u8) -> f64 {
         let five_plus_level = 3. + f64::from(level);
         five_plus_level * five_plus_level
     }
 }
 
-impl Display for ArrowTowerUpgradeType {
+impl Display for ArrowTowerUpgrade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -51,11 +54,22 @@ impl Display for ArrowTowerUpgradeType {
 #[reflect(Component)]
 #[repr(transparent)]
 pub struct ArrowTowerUpgrades {
-    pub upgrades: HashMap<ArrowTowerUpgradeType, u8>,
+    upgrades: [u8; ArrowTowerUpgrade::COUNT],
+}
+impl Index<ArrowTowerUpgrade> for ArrowTowerUpgrades {
+    type Output = u8;
+    fn index(&self, index: ArrowTowerUpgrade) -> &Self::Output {
+        &self.upgrades[index as usize]
+    }
+}
+impl IndexMut<ArrowTowerUpgrade> for ArrowTowerUpgrades {
+    fn index_mut(&mut self, index: ArrowTowerUpgrade) -> &mut Self::Output {
+        &mut self.upgrades[index as usize]
+    }
 }
 
 pub fn upgrade_tower(
-    In((tower, upgrade)): In<(Entity, ArrowTowerUpgradeType)>,
+    In((tower, upgrade)): In<(Entity, ArrowTowerUpgrade)>,
     mut upgrades: Query<&mut ArrowTowerUpgrades>,
     mut money: ResMut<Money>,
 ) {
@@ -64,13 +78,11 @@ pub fn upgrade_tower(
         .expect("Provided Entity should exist / have the TowerUpgrades component");
 
     // Get the level of the upgrade, or insert the upgrade with a level of 1
-    let level = tower_upgrades.upgrades.entry(upgrade.clone()).or_insert(0);
-    let upgrade_cost = upgrade.cost(*level);
+    let level = tower_upgrades[upgrade];
+    let upgrade_cost = upgrade.cost(level);
 
-    if *level < upgrade.max_level() && money.value >= upgrade_cost {
+    if level < upgrade.max_level() && money.value >= upgrade_cost {
         money.value -= upgrade_cost;
-        *level += 1;
-    } else if *level == 0{
-        tower_upgrades.upgrades.remove(&upgrade);
+        tower_upgrades[upgrade] += 1;
     }
 }

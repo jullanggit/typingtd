@@ -9,7 +9,7 @@ use crate::{
     typing::{
         add_to_type, change_language, remove_inactive_to_types, toggle_to_type, Action, Language,
     },
-    upgrades::{upgrade_tower, ArrowTowerUpgradeType, ArrowTowerUpgrades},
+    upgrades::{upgrade_tower, ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 
 pub struct OneShotPlugin;
@@ -29,7 +29,7 @@ pub struct OneShotSystems {
     pub despawn_menus: SystemId,
     pub spawn_menu: SystemId<GameState>,
     pub toggle_to_type: SystemId,
-    pub upgrade_tower: SystemId<(Entity, ArrowTowerUpgradeType)>,
+    pub upgrade_tower: SystemId<(Entity, ArrowTowerUpgrade)>,
     pub remove_inactive_to_types: SystemId,
 }
 impl FromWorld for OneShotSystems {

@@ -6,7 +6,7 @@ use strum::IntoEnumIterator;
 use crate::{
     oneshot::OneShotSystems,
     typing::{Action, Language},
-    upgrades::ArrowTowerUpgradeType,
+    upgrades::ArrowTowerUpgrade,
 };
 
 pub struct StatePlugin;
@@ -53,7 +53,7 @@ impl GameState {
             Self::LanguageMenu => Some(Language::iter().map(Action::ChangeLanguage).collect()),
             Self::UpgradeTowerSelectionMenu => Some(Vec::new()),
             Self::TowerUpgradeMenu(entity) => Some(
-                ArrowTowerUpgradeType::iter()
+                ArrowTowerUpgrade::iter()
                     .map(|upgrade| Action::UpgradeTower(*entity, upgrade))
                     .collect(),
             ),

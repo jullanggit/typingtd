@@ -173,11 +173,9 @@ pub fn update_upgrade_price(
             let level = upgrades
                 .get(*entity)
                 .expect("Passed entity should have Upgrades")
-                .upgrades
-                .get(upgrade)
-                .unwrap_or(&0);
+                [*upgrade];
 
-            let cost = upgrade.cost(*level);
+            let cost = upgrade.cost(level);
 
             to_type.word = format!("{upgrade} {cost}$");
         }
