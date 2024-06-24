@@ -61,19 +61,19 @@ pub fn spawn_arrow(
     let shot_amount = upgrades
         .upgrades
         .get(&ArrowTowerUpgradeType::Multishot)
-        .map_or(0, |amount| amount + 1);
+        .unwrap_or(&0);
 
     // Angle between arrows
-    let arrow_angle = if shot_amount < 12 {
+    let arrow_angle = if *shot_amount < 12 {
         30.
     } else {
-        360. / f32::from(shot_amount)
+        360. / f32::from(*shot_amount)
     };
-    for i in 0..=shot_amount {
+    for i in 0..=*shot_amount {
         // Difference in rotation from the nearest enemy
         let i = f32::from(i);
 
-        let angle = (i - f32::from(shot_amount) / 2.) * arrow_angle;
+        let angle = (i - f32::from(*shot_amount) / 2.) * arrow_angle;
         let rotation_difference = Quat::from_rotation_z(angle.to_radians());
 
         let final_rotation = direction_to_enemy * rotation_difference;
@@ -106,7 +106,7 @@ pub fn spawn_arrow(
             ),
         ));
         if let Some(level) = upgrades.upgrades.get(&ArrowTowerUpgradeType::Tracking) {
-            arrow.insert(Tracking::new(1.5 * f32::from(level + 1)));
+            arrow.insert(Tracking::new(1.5 * f32::from(*level)));
         };
     }
 }

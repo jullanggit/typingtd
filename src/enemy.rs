@@ -93,7 +93,7 @@ impl Health {
 #[reflect(Resource)]
 #[repr(transparent)]
 pub struct Money {
-    value: f64,
+    pub value: f64,
 }
 
 fn apply_damage(
