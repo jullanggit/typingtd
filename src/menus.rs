@@ -52,11 +52,9 @@ impl MenuButton {
 }
 
 fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
-    let mut money_text = money_text
-        .get_single_mut()
-        .expect("Money text should exist");
-
-    money_text.sections[0].value = format!("{}", money.value);
+    if let Ok(mut money_text) = money_text.get_single_mut() {
+        money_text.sections[0].value = format!("{}", money.value);
+    }
 }
 
 fn spawn_money_text(mut commands: Commands, handles: Res<Handles>) {

@@ -179,7 +179,8 @@ pub fn handle_action(
             commands.run_system_with_input(oneshot_systems.change_state, state);
         }
         Action::ChangeTowerPriority(tower, priority) => {
-            commands.run_system_with_input(oneshot_systems.change_tower_priority, (tower, priority));
+            commands
+                .run_system_with_input(oneshot_systems.change_tower_priority, (tower, priority));
         }
         Action::UpgradeTower(tower, upgrade) => {
             commands.run_system_with_input(oneshot_systems.upgrade_tower, (tower, upgrade));
