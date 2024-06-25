@@ -5,8 +5,9 @@ use strum::IntoEnumIterator;
 
 use crate::{
     oneshot::OneShotSystems,
+    tower::TowerPriority,
     typing::{Action, Language},
-    upgrades::ArrowTowerUpgradeType,
+    upgrades::ArrowTowerUpgrade,
 };
 
 pub struct StatePlugin;
@@ -33,10 +34,10 @@ pub enum GameState {
     MainMenu,
     PauseMenu,
     LanguageMenu,
-    // The menu in which you choose which tower to upgrade
-    UpgradeTowerSelectionMenu,
-    // The menu in which you choose which upgrade
+    TowerSelectionMenu,
+    SelectedTower(Entity),
     TowerUpgradeMenu(Entity),
+    TowerPriorityMenu(Entity),
 }
 impl GameState {
     /// If the State is a menu state, returns a the actions for the buttons in the menu
@@ -45,16 +46,30 @@ impl GameState {
             Self::Loading | Self::Running => None,
             Self::MainMenu => Some(vec![Action::ChangeState(Self::Running)]),
             Self::PauseMenu => Some(
-                [Self::LanguageMenu, Self::UpgradeTowerSelectionMenu]
+                [Self::LanguageMenu, Self::TowerSelectionMenu]
                     .into_iter()
                     .map(Action::ChangeState)
                     .collect(),
             ),
             Self::LanguageMenu => Some(Language::iter().map(Action::ChangeLanguage).collect()),
-            Self::UpgradeTowerSelectionMenu => Some(Vec::new()),
+            Self::TowerSelectionMenu => Some(Vec::new()),
+            Self::SelectedTower(entity) => Some(
+                [
+                    Self::TowerUpgradeMenu(*entity),
+                    Self::TowerPriorityMenu(*entity),
+                ]
+                .into_iter()
+                .map(Action::ChangeState)
+                .collect(),
+            ),
             Self::TowerUpgradeMenu(entity) => Some(
-                ArrowTowerUpgradeType::iter()
+                ArrowTowerUpgrade::iter()
                     .map(|upgrade| Action::UpgradeTower(*entity, upgrade))
+                    .collect(),
+            ),
+            Self::TowerPriorityMenu(entity) => Some(
+                TowerPriority::iter()
+                    .map(|priority| Action::ChangeTowerPriority(*entity, priority))
                     .collect(),
             ),
         }
@@ -77,7 +92,10 @@ impl Display for GameState {
                 Self::MainMenu => "Main Menu",
                 Self::PauseMenu => "Options",
                 Self::LanguageMenu => "Languages",
-                Self::UpgradeTowerSelectionMenu | Self::TowerUpgradeMenu(_) => "Upgrades",
+                Self::TowerSelectionMenu => "Select Tower",
+                Self::SelectedTower(_) => "Select Option",
+                Self::TowerUpgradeMenu(_) => "Upgrades",
+                Self::TowerPriorityMenu(_) => "Priorities",
             }
         )
     }

@@ -17,7 +17,7 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(OnExit(GameState::MainMenu), spawn_money_text)
             .add_systems(
-                OnEnter(GameState::UpgradeTowerSelectionMenu),
+                OnEnter(GameState::TowerSelectionMenu),
                 add_tower_selection_to_types,
             )
             .add_systems(
@@ -156,7 +156,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                 parent.spawn((
                     ButtonBundle {
                         style: Style {
-                            width: Val::Px(200.0),
+                            width: Val::Px(button_action.to_string().len() as f32 * 30.),
                             height: Val::Px(80.0),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
@@ -181,7 +181,7 @@ fn add_tower_selection_to_types(
             oneshot_systems.add_to_type,
             (
                 tower,
-                Action::ChangeState(GameState::TowerUpgradeMenu(tower)),
+                Action::ChangeState(GameState::SelectedTower(tower)),
                 None,
             ),
         );

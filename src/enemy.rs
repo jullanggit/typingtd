@@ -163,7 +163,7 @@ fn despawn_dead_entities(
     mut money: ResMut<Money>,
 ) {
     for (health, enemy_type, entity) in &enemies {
-        if health.value < 0. {
+        if health.value <= 0. {
             if let Some(enemy_type) = enemy_type {
                 money.value += enemy_type.value();
             }

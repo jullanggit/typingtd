@@ -12,7 +12,8 @@ use crate::{
     physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
     states::GameState,
-    upgrades::{ArrowTowerUpgradeType, ArrowTowerUpgrades},
+    tower::TowerPriority,
+    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 
 // Plugin
@@ -62,10 +63,11 @@ impl Wordlists {
 
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
-    ShootArrow(Position, ArrowTowerUpgrades),
+    ShootArrow(Position, ArrowTowerUpgrades, TowerPriority),
     ChangeLanguage(Language),
     ChangeState(GameState),
-    UpgradeTower(Entity, ArrowTowerUpgradeType),
+    ChangeTowerPriority(Entity, TowerPriority),
+    UpgradeTower(Entity, ArrowTowerUpgrade),
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -73,9 +75,10 @@ impl Display for Action {
             f,
             "{}",
             match self {
-                Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
+                Self::ShootArrow(_, _, _) => String::from("Shoot Arrow"),
                 Self::ChangeLanguage(language) => format!("{language:?}"),
                 Self::ChangeState(menu) => format!("{menu}"),
+                Self::ChangeTowerPriority(_, priority) => format!("{priority:?}"),
                 Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
             }
         )
@@ -165,15 +168,18 @@ pub fn handle_action(
     oneshot_systems: &Res<'_, OneShotSystems>,
 ) {
     match action {
-        Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
+        Action::ShootArrow(position, upgrades, priority) => commands.run_system_with_input(
             oneshot_systems.spawn_arrow,
-            (position, Speed::new(PROJECTILE_SPEED), upgrades),
+            (position, Speed::new(PROJECTILE_SPEED), upgrades, priority),
         ),
         Action::ChangeLanguage(language) => {
             commands.run_system_with_input(oneshot_systems.change_language, language);
         }
         Action::ChangeState(state) => {
             commands.run_system_with_input(oneshot_systems.change_state, state);
+        }
+        Action::ChangeTowerPriority(tower, priority) => {
+            commands.run_system_with_input(oneshot_systems.change_tower_priority, (tower, priority));
         }
         Action::UpgradeTower(tower, upgrade) => {
             commands.run_system_with_input(oneshot_systems.upgrade_tower, (tower, upgrade));
@@ -263,13 +269,11 @@ pub fn add_to_type(
 }
 
 /// Changes character color based on word completion
-fn handle_text_display(mut query: Query<(&ToType, &mut Text)>) {
+fn handle_text_display(mut query: Query<(&ToType, &mut Text), Changed<ToType>>) {
     for (to_type, mut text) in &mut query {
-        if text.sections[0].value.chars().count() != to_type.progress {
-            text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
+        text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
 
-            text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
-        }
+        text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
     }
 }
 

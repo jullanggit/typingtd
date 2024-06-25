@@ -122,14 +122,10 @@ impl Obb {
         let center_projection = center_delta.dot(axis).abs();
 
         // More accurate/performant than normal mult + add
-        let a_projection = self.half_extents.x.mul_add(
-            axes[0].dot(axis).abs(),
-            self.half_extents.y * axes[1].dot(axis).abs(),
-        );
-        let b_projection = other_obb.half_extents.x.mul_add(
-            axes[2].dot(axis).abs(),
-            other_obb.half_extents.y * axes[3].dot(axis).abs(),
-        );
+        let a_projection = self.half_extents.x * axes[0].dot(axis).abs()
+            + self.half_extents.y * axes[1].dot(axis).abs();
+        let b_projection = other_obb.half_extents.x * axes[2].dot(axis).abs()
+            + other_obb.half_extents.y * axes[3].dot(axis).abs();
 
         center_projection <= a_projection + b_projection
     }
