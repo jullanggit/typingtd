@@ -2,7 +2,7 @@ use crate::{
     asset_loader::Handles,
     physics::Position,
     states::GameState,
-    tower::{Tower, TowerType},
+    tower::{Tower, TowerPriority, TowerType},
     upgrades::ArrowTowerUpgrades,
 };
 use bevy::prelude::*;
@@ -126,7 +126,7 @@ fn spawn_tower(
         },
         Position::new(position),
         Tile { tile_type },
-        Tower { tower_type },
+        Tower::new(tower_type, TowerPriority::Furthest),
         ArrowTowerUpgrades::default(),
     ));
 }

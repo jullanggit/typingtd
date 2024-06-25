@@ -1,6 +1,8 @@
 use crate::{
     enemy::{Attack, Enemy, Health},
+    path::PathState,
     physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
+    tower::TowerPriority,
     upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 use bevy::prelude::*;
@@ -46,16 +48,26 @@ impl Tracking {
 // Arrow Tower
 /// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
 pub fn spawn_arrow(
-    In((arrow_position, speed, upgrades)): In<(Position, Speed, ArrowTowerUpgrades)>,
-    enemies: Query<&Position, With<Enemy>>,
+    In((arrow_position, speed, upgrades, priority)): In<(
+        Position,
+        Speed,
+        ArrowTowerUpgrades,
+        TowerPriority,
+    )>,
+    enemies: Query<(&Position, &PathState), With<Enemy>>,
     mut commands: Commands,
 ) {
     // Get the closest enemy, exit if there arent any
-    let Some(closest_enemy) = closest_enemy(&enemies, arrow_position) else {
+    let Some(targeted_enemy) = (match priority {
+        TowerPriority::Nearest => {
+            closest_enemy(&enemies, arrow_position, |(position, _)| position.value)
+        }
+        TowerPriority::Furthest => furthest_enemy(&enemies),
+    }) else {
         return;
     };
 
-    let direction_to_enemy_vec2 = (closest_enemy - arrow_position.value).normalize();
+    let direction_to_enemy_vec2 = (targeted_enemy - arrow_position.value).normalize();
     let direction_to_enemy = Quat::from_rotation_arc_2d(Vec2::X, direction_to_enemy_vec2);
 
     let shot_amount = upgrades[ArrowTowerUpgrade::Multishot];
@@ -106,19 +118,27 @@ pub fn spawn_arrow(
     }
 }
 
-fn closest_enemy(
-    enemies: &Query<'_, '_, &Position, With<Enemy>>,
-    arrow_position: Position,
-) -> Option<Vec2> {
+fn closest_enemy<I, T, F>(enemies: I, arrow_position: Position, func: F) -> Option<Vec2>
+where
+    I: IntoIterator<Item = T>,
+    F: Fn(T) -> Vec2,
+{
     enemies
-        .iter()
-        .map(|position| position.value)
+        .into_iter()
+        .map(func)
         .min_by(|enemy_position1, enemy_position2| {
             arrow_position
                 .value
                 .distance(*enemy_position1)
                 .total_cmp(&arrow_position.value.distance(*enemy_position2))
         })
+}
+
+fn furthest_enemy(enemies: &Query<'_, '_, (&Position, &PathState), With<Enemy>>) -> Option<Vec2> {
+    enemies
+        .iter()
+        .max_by_key(|(_, path_state)| path_state.index)
+        .map(|(position, _)| position.value)
 }
 
 fn track_enemy(
@@ -131,7 +151,9 @@ fn track_enemy(
 ) {
     for (arrow_position, speed, tracking, mut rotation, mut velocity) in &mut tracking_arrows {
         // Get the closest enemy, exit if there arent any
-        let Some(closest_enemy) = closest_enemy(&enemies, *arrow_position) else {
+        let Some(closest_enemy) =
+            closest_enemy(&enemies, *arrow_position, |position| position.value)
+        else {
             return;
         };
 

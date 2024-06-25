@@ -13,7 +13,7 @@ impl Plugin for MenuPlugin {
         app.register_type::<MenuButton>()
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(
-                OnEnter(GameState::UpgradeTowerSelectionMenu),
+                OnEnter(GameState::TowerSelectionMenu),
                 add_tower_selection_to_types,
             )
             .add_systems(
@@ -137,7 +137,7 @@ fn add_tower_selection_to_types(
             oneshot_systems.add_to_type,
             (
                 tower,
-                Action::ChangeState(GameState::TowerUpgradeMenu(tower)),
+                Action::ChangeState(GameState::SelectedTower(tower)),
                 None,
             ),
         );

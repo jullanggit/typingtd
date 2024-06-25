@@ -12,6 +12,7 @@ use crate::{
     physics::{Layer, Position},
     projectile::{Speed, PROJECTILE_SPEED},
     states::GameState,
+    tower::TowerPriority,
     upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 
@@ -62,9 +63,10 @@ impl Wordlists {
 
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
-    ShootArrow(Position, ArrowTowerUpgrades),
+    ShootArrow(Position, ArrowTowerUpgrades, TowerPriority),
     ChangeLanguage(Language),
     ChangeState(GameState),
+    ChangeTowerPriority(Entity, TowerPriority),
     UpgradeTower(Entity, ArrowTowerUpgrade),
 }
 impl Display for Action {
@@ -73,9 +75,10 @@ impl Display for Action {
             f,
             "{}",
             match self {
-                Self::ShootArrow(_, _) => String::from("Shoot Arrow"),
+                Self::ShootArrow(_, _, _) => String::from("Shoot Arrow"),
                 Self::ChangeLanguage(language) => format!("{language:?}"),
                 Self::ChangeState(menu) => format!("{menu}"),
+                Self::ChangeTowerPriority(_, priority) => format!("{priority:?}"),
                 Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
             }
         )
@@ -165,15 +168,18 @@ pub fn handle_action(
     oneshot_systems: &Res<'_, OneShotSystems>,
 ) {
     match action {
-        Action::ShootArrow(position, upgrades) => commands.run_system_with_input(
+        Action::ShootArrow(position, upgrades, priority) => commands.run_system_with_input(
             oneshot_systems.spawn_arrow,
-            (position, Speed::new(PROJECTILE_SPEED), upgrades),
+            (position, Speed::new(PROJECTILE_SPEED), upgrades, priority),
         ),
         Action::ChangeLanguage(language) => {
             commands.run_system_with_input(oneshot_systems.change_language, language);
         }
         Action::ChangeState(state) => {
             commands.run_system_with_input(oneshot_systems.change_state, state);
+        }
+        Action::ChangeTowerPriority(tower, priority) => {
+            commands.run_system_with_input(oneshot_systems.change_tower_priority, (tower, priority));
         }
         Action::UpgradeTower(tower, upgrade) => {
             commands.run_system_with_input(oneshot_systems.upgrade_tower, (tower, upgrade));

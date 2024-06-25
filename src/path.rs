@@ -70,7 +70,7 @@ pub struct Path {
 #[reflect(Component)]
 #[repr(transparent)]
 pub struct PathState {
-    index: usize,
+    pub index: usize,
 }
 impl PathState {
     pub const fn new(index: usize) -> Self {

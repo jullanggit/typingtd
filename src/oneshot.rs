@@ -6,6 +6,7 @@ use crate::{
     physics::Position,
     projectile::{spawn_arrow, Speed},
     states::{change_state, GameState},
+    tower::{change_tower_priority, TowerPriority},
     typing::{
         add_to_type, change_language, remove_inactive_to_types, toggle_to_type, Action, Language,
     },
@@ -21,7 +22,7 @@ impl Plugin for OneShotPlugin {
 
 #[derive(Resource, Debug, Clone)]
 pub struct OneShotSystems {
-    pub spawn_arrow: SystemId<(Position, Speed, ArrowTowerUpgrades)>,
+    pub spawn_arrow: SystemId<(Position, Speed, ArrowTowerUpgrades, TowerPriority)>,
     pub spawn_enemy: SystemId<Enemy>,
     pub add_to_type: SystemId<(Entity, Action, Option<String>)>,
     pub change_language: SystemId<Language>,
@@ -30,6 +31,7 @@ pub struct OneShotSystems {
     pub spawn_menu: SystemId<GameState>,
     pub toggle_to_type: SystemId,
     pub upgrade_tower: SystemId<(Entity, ArrowTowerUpgrade)>,
+    pub change_tower_priority: SystemId<(Entity, TowerPriority)>,
     pub remove_inactive_to_types: SystemId,
 }
 impl FromWorld for OneShotSystems {
@@ -44,6 +46,7 @@ impl FromWorld for OneShotSystems {
             spawn_menu: world.register_system(spawn_menu),
             toggle_to_type: world.register_system(toggle_to_type),
             upgrade_tower: world.register_system(upgrade_tower),
+            change_tower_priority: world.register_system(change_tower_priority),
             remove_inactive_to_types: world.register_system(remove_inactive_to_types),
         }
     }
