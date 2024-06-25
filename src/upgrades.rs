@@ -8,6 +8,7 @@ use strum::{EnumCount, EnumIter};
 
 use crate::{
     enemy::Money,
+    menus::{update_money_text, MoneyText},
     states::PauseMenuSystemSet,
     typing::{Action, ToType},
 };
@@ -77,6 +78,7 @@ pub fn upgrade_tower(
     In((tower, upgrade)): In<(Entity, ArrowTowerUpgrade)>,
     mut upgrades: Query<&mut ArrowTowerUpgrades>,
     mut money: ResMut<Money>,
+    money_text: Query<&mut Text, With<MoneyText>>,
 ) {
     let mut tower_upgrades = upgrades
         .get_mut(tower)
@@ -88,6 +90,7 @@ pub fn upgrade_tower(
 
     if level < upgrade.max_level() && money.value >= upgrade_cost {
         money.value -= upgrade_cost;
+        update_money_text(money_text, money);
         tower_upgrades[upgrade] += 1;
     }
 }

@@ -52,7 +52,7 @@ impl MenuButton {
     }
 }
 
-fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
+pub fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: ResMut<Money>) {
     let mut money_text = money_text
         .get_single_mut()
         .expect("Money text should exist");
