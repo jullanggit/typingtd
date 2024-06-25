@@ -4,8 +4,7 @@ use crate::{
     asset_loader::Handles,
     enemy::Money,
     oneshot::OneShotSystems,
-    physics::Position,
-    states::{GameState, GameSystemSet, PauseMenuSystemSet},
+    states::{GameState, PauseMenuSystemSet},
     tower::Tower,
     typing::{handle_action, Action},
 };
@@ -26,7 +25,7 @@ impl Plugin for MenuPlugin {
                     toggle_pause_menu,
                     button_interactions.in_set(PauseMenuSystemSet),
                     add_menu_button_to_type.in_set(PauseMenuSystemSet),
-                    update_money_text.in_set(GameSystemSet),
+                    update_money_text.run_if(resource_changed::<Money>),
                 ),
             );
     }
@@ -52,7 +51,7 @@ impl MenuButton {
     }
 }
 
-pub fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: ResMut<Money>) {
+fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
     let mut money_text = money_text
         .get_single_mut()
         .expect("Money text should exist");
