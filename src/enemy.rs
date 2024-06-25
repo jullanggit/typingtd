@@ -93,7 +93,7 @@ impl Health {
 #[reflect(Resource)]
 #[repr(transparent)]
 pub struct Money {
-    value: f64,
+    pub value: f64,
 }
 
 fn apply_damage(
@@ -154,7 +154,7 @@ pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Pat
     ));
 }
 fn calculate_enemy_size(health: f32) -> f32 {
-    (TILE_SIZE * health) / 3.
+    f32::max(5.0, (TILE_SIZE * health) / 3.) // enemies sometimes not visible so size at least 5
 }
 
 fn despawn_dead_entities(

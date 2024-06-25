@@ -13,7 +13,7 @@ pub struct StatePlugin;
 impl Plugin for StatePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
-            .configure_sets(Update, GameSystemSet.run_if(not_in_menu_state))
+            .configure_sets(Update, GameSystemSet.run_if(in_state(GameState::Running)))
             .configure_sets(Update, PauseMenuSystemSet.run_if(in_menu_state));
     }
 }
@@ -85,9 +85,6 @@ impl Display for GameState {
 
 fn in_menu_state(state: Res<State<GameState>>) -> bool {
     state.is_menu_state()
-}
-fn not_in_menu_state(state: Res<State<GameState>>) -> bool {
-    !state.is_menu_state()
 }
 
 /// Changes the state to the given state, spawns and despawns menus if necessary

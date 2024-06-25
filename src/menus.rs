@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 
 use crate::{
+    asset_loader::Handles,
+    enemy::Money,
     oneshot::OneShotSystems,
-    states::{GameState, PauseMenuSystemSet},
+    physics::Position,
+    states::{GameState, GameSystemSet, PauseMenuSystemSet},
     tower::Tower,
     typing::{handle_action, Action},
 };
@@ -12,6 +15,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MenuButton>()
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+            .add_systems(OnExit(GameState::MainMenu), spawn_money_text)
             .add_systems(
                 OnEnter(GameState::UpgradeTowerSelectionMenu),
                 add_tower_selection_to_types,
@@ -22,6 +26,7 @@ impl Plugin for MenuPlugin {
                     toggle_pause_menu,
                     button_interactions.in_set(PauseMenuSystemSet),
                     add_menu_button_to_type.in_set(PauseMenuSystemSet),
+                    update_money_text.in_set(GameSystemSet),
                 ),
             );
     }
@@ -30,6 +35,10 @@ impl Plugin for MenuPlugin {
 #[derive(Component, Debug, Clone, Reflect, Default)]
 #[reflect(Component)]
 pub struct Menu;
+
+#[derive(Component, Debug, Clone, Reflect, Default)]
+#[reflect(Component)]
+pub struct MoneyText;
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
@@ -41,6 +50,41 @@ impl MenuButton {
     pub const fn new(action: Action) -> Self {
         Self { action }
     }
+}
+
+fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
+    let mut money_text = money_text
+        .get_single_mut()
+        .expect("Money text should exist");
+
+    money_text.sections[0].value = format!("{}", money.value);
+}
+
+fn spawn_money_text(mut commands: Commands, handles: Res<Handles>) {
+    commands.spawn((
+        Name::new("Money display"),
+        TextBundle {
+            text: Text {
+                sections: vec![TextSection::new(
+                    String::new(),
+                    TextStyle {
+                        font: handles.font.clone(),
+                        font_size: 80.0,
+                        color: Color::BLACK,
+                    },
+                )],
+                ..default()
+            },
+            style: Style {
+                position_type: PositionType::Absolute,
+                right: Val::Px(10.),
+                top: Val::Px(10.),
+                ..default()
+            },
+            ..default()
+        },
+        MoneyText,
+    ));
 }
 
 fn spawn_main_menu(mut commands: Commands, oneshot_systems: Res<OneShotSystems>) {
