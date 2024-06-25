@@ -53,7 +53,7 @@ impl MenuButton {
 
 fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
     if let Ok(mut money_text) = money_text.get_single_mut() {
-        money_text.sections[0].value = format!("{}", money.value);
+        money_text.sections[0].value = format!("{}$", money.value);
     }
 }
 

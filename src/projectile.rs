@@ -134,6 +134,8 @@ where
         })
 }
 
+// TODO: Make it target the furthest enemy, not just a rondom enemy of the ones that have the
+// highest index
 fn furthest_enemy(enemies: &Query<'_, '_, (&Position, &PathState), With<Enemy>>) -> Option<Vec2> {
     enemies
         .iter()
