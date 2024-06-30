@@ -13,6 +13,7 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MenuButton>()
+            .add_systems(Startup, spawn_menu_image)
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(OnExit(GameState::MainMenu), spawn_money_text)
             .add_systems(
@@ -111,6 +112,23 @@ pub fn despawn_menus(mut commands: Commands, menus: Query<Entity, With<Menu>>) {
     for menu in &menus {
         commands.entity(menu).despawn_recursive();
     }
+}
+
+fn spawn_menu_image(asset_server: Res<AssetServer>, mut commands: Commands) {
+    let texture_handle: Handle<Image> = asset_server.load("menu_image.png");
+
+    commands.spawn((
+        Name::new("menu image"),
+        Menu,
+        SpriteBundle {
+            texture: texture_handle,
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(1023., 576.)),
+                ..default()
+            },
+            ..default()
+        },
+    ));
 }
 
 pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
