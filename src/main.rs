@@ -90,7 +90,7 @@ trait WasmPluginTrait {
     fn add_wasm_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self;
 }
 impl WasmPluginTrait for App {
-    fn add_wasm_plugin<P: Plugin>(&mut self, _plugin: P) -> &mut Self {
+    fn add_wasm_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {
         #[cfg(target_family = "wasm")]
         self.add_plugins(plugin);
         self
