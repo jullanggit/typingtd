@@ -1,9 +1,10 @@
-use bevy::prelude::*;
+use bevy::{math::vec3, prelude::*};
 use rand::{thread_rng, Rng};
 use strum::{EnumCount, EnumIter};
 
 use crate::{
     map::TILE_SIZE,
+    menus::{update_life_text, LifeText},
     path::{to_0_or_1, Path, PathState},
     physics::{Layer, Obb, Position, Rotation, Velocity},
     projectile::Speed,
@@ -19,6 +20,8 @@ impl Plugin for EnemyPlugin {
             .register_type::<Enemy>()
             .register_type::<Attack>()
             .init_resource::<Money>()
+            .init_resource::<Life>()
+            .add_systems(Startup, init_life)
             .add_systems(
                 Update,
                 (
@@ -29,6 +32,10 @@ impl Plugin for EnemyPlugin {
                     .in_set(GameSystemSet),
             );
     }
+}
+
+fn init_life(mut life: ResMut<Life>) {
+    life.value = 100.;
 }
 
 #[derive(Component, Debug, Clone, Reflect, EnumIter, EnumCount)]
@@ -93,6 +100,13 @@ impl Health {
 #[reflect(Resource)]
 #[repr(transparent)]
 pub struct Money {
+    pub value: f64,
+}
+
+#[derive(Resource, Debug, Clone, Reflect, Default)]
+#[reflect(Resource)]
+#[repr(transparent)]
+pub struct Life {
     pub value: f64,
 }
 
@@ -180,9 +194,12 @@ fn despawn_dead_entities(
 }
 
 fn despawn_far_entities(
-    entities: Query<(Entity, &Position, Option<(&Obb, &Rotation)>)>,
+    entities: Query<(Entity, &Position, Option<(&Obb, &Rotation)>, Option<&Enemy>)>,
     camera: Query<&OrthographicProjection>,
     mut commands: Commands,
+    mut life_text: Query<&mut Text, With<LifeText>>,
+    mut life: ResMut<Life>,
+    asset_server: Res<AssetServer>,
 ) {
     if let Ok(camera) = camera.get_single() {
         // Fix camera area not being set correctly for one frame after creation
@@ -196,7 +213,7 @@ fn despawn_far_entities(
         ));
 
         // For every entity, check if it is off screen, despawn it if so
-        for (entity, position, optional_stuff) in &entities {
+        for (entity, position, optional_stuff, enemy_type) in &entities {
             let in_window = match optional_stuff {
                 Some((obb, rotation)) => obb.collides(
                     *position,
@@ -213,8 +230,44 @@ fn despawn_far_entities(
             };
 
             if !in_window {
+                let old_life = life.value;
+                let new_life: f64;
+
+                if let Some(enemy_type) = enemy_type {
+                    new_life = life.value - enemy_type.value();
+
+                    if old_life > 0. && new_life <= 0. {
+                        spawn_death_menu(&mut commands, &asset_server);
+                    }
+
+                    if old_life > 0. {
+                        life.value = new_life;
+                        update_life_text(&mut life_text, life.value);
+                    }
+                }
+
                 commands.entity(entity).despawn();
             }
         }
     }
+}
+
+fn spawn_death_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) {
+    let texture_handle: Handle<Image> = asset_server.load("death.png");
+
+    commands.spawn((
+        Name::new("menu image"),
+        SpriteBundle {
+            texture: texture_handle,
+            transform: Transform {
+                translation: Vec3::new(0., 0., 100.),
+                ..default()
+            },
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(1024., 576.)),
+                ..default()
+            },
+            ..default()
+        },
+    ));
 }

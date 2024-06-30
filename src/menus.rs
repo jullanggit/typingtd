@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::Handles,
-    enemy::Money,
+    enemy::{Life, Money},
     oneshot::OneShotSystems,
     states::{GameState, PauseMenuSystemSet},
     tower::Tower,
@@ -15,7 +15,10 @@ impl Plugin for MenuPlugin {
         app.register_type::<MenuButton>()
             .add_systems(Startup, spawn_menu_image)
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
-            .add_systems(OnExit(GameState::MainMenu), spawn_money_text)
+            .add_systems(
+                OnExit(GameState::MainMenu),
+                (spawn_money_text, spawn_life_display),
+            )
             .add_systems(
                 OnEnter(GameState::TowerSelectionMenu),
                 add_tower_selection_to_types,
@@ -40,6 +43,10 @@ pub struct Menu;
 #[reflect(Component)]
 pub struct MoneyText;
 
+#[derive(Component, Debug, Clone, Reflect, Default)]
+#[reflect(Component)]
+pub struct LifeText;
+
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
 #[repr(transparent)]
@@ -50,6 +57,39 @@ impl MenuButton {
     pub const fn new(action: Action) -> Self {
         Self { action }
     }
+}
+
+pub fn update_life_text(life_text: &mut Query<&mut Text, With<LifeText>>, life: f64) {
+    if let Ok(mut life_text) = life_text.get_single_mut() {
+        life_text.sections[0].value = format!("{} Lives", life);
+    }
+}
+
+fn spawn_life_display(mut commands: Commands, handles: Res<Handles>) {
+    commands.spawn((
+        Name::new("Life display"),
+        TextBundle {
+            text: Text {
+                sections: vec![TextSection::new(
+                    String::new(),
+                    TextStyle {
+                        font: handles.font.clone(),
+                        font_size: 80.0,
+                        color: Color::BLACK,
+                    },
+                )],
+                ..default()
+            },
+            style: Style {
+                position_type: PositionType::Absolute,
+                left: Val::Px(10.),
+                top: Val::Px(10.),
+                ..default()
+            },
+            ..default()
+        },
+        LifeText,
+    ));
 }
 
 fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
@@ -123,7 +163,7 @@ fn spawn_menu_image(asset_server: Res<AssetServer>, mut commands: Commands) {
         SpriteBundle {
             texture: texture_handle,
             sprite: Sprite {
-                custom_size: Some(Vec2::new(1023., 576.)),
+                custom_size: Some(Vec2::new(1024., 576.)),
                 ..default()
             },
             ..default()
