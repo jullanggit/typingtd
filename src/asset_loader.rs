@@ -12,7 +12,7 @@ pub struct Handles {
     #[asset(path = "level1.png")]
     pub level1: Handle<Image>,
 
-    #[asset(path = "dejavu-sans.book.ttf")]
+    #[asset(path = "Normaleste.ttf")]
     pub font: Handle<Font>,
 
     #[asset(path = "grass.png")]

@@ -130,13 +130,20 @@ fn apply_damage(
     }
 }
 
-pub fn spawn_enemy(In(variant): In<Enemy>, mut commands: Commands, path: Res<Path>) {
+pub fn spawn_enemy(
+    In(variant): In<Enemy>,
+    mut commands: Commands,
+    path: Res<Path>,
+    asset_server: Res<AssetServer>,
+) {
+    let enemy: Handle<Image> = asset_server.load("enemy.png");
+
     let size = Vec2::splat(calculate_enemy_size(variant.health() as f32));
     commands.spawn((
         Name::new(format!("{variant:?} Enemy")),
         SpriteBundle {
+            texture: enemy,
             sprite: Sprite {
-                color: Color::BLUE,
                 custom_size: Some(size),
                 ..default()
             },

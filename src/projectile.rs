@@ -56,6 +56,7 @@ pub fn spawn_arrow(
     )>,
     enemies: Query<(&Position, &PathState), With<Enemy>>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
 ) {
     // Get the closest enemy, exit if there arent any
     let Some(targeted_enemy) = (match priority {
@@ -87,6 +88,8 @@ pub fn spawn_arrow(
 
         let final_rotation = direction_to_enemy * rotation_difference;
 
+        let arrow: Handle<Image> = asset_server.load("arrow.png");
+
         let mut arrow = commands.spawn((
             Name::new("Arrow"),
             arrow_position,
@@ -94,8 +97,8 @@ pub fn spawn_arrow(
             Projectile,
             speed,
             SpriteBundle {
+                texture: arrow,
                 sprite: Sprite {
-                    color: Color::rgba_u8(68, 47, 47, 255),
                     custom_size: Some(Vec2::new(45., 10.)),
                     ..default()
                 },

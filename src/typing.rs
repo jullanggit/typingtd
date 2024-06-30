@@ -223,7 +223,7 @@ pub fn add_to_type(
                             value: String::new(),
                             style: TextStyle {
                                 font: handles.font.clone(),
-                                font_size: 40.,
+                                font_size: 25.,
                                 color: Color::GREEN,
                             },
                         },
@@ -248,7 +248,7 @@ pub fn add_to_type(
                             value: String::new(),
                             style: TextStyle {
                                 font: handles.font.clone(),
-                                font_size: 20.,
+                                font_size: 15.,
                                 color: Color::GREEN,
                             },
                         },
