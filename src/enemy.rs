@@ -11,8 +11,6 @@ use crate::{
     states::GameSystemSet,
 };
 
-pub const ENEMY_SPEED: f32 = 50.;
-
 pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
@@ -112,13 +110,28 @@ pub struct Life {
 
 fn apply_damage(
     mut enemies: Query<
-        (&Position, &Rotation, &mut Obb, &mut Health, &mut Sprite),
+        (
+            &Position,
+            &Rotation,
+            &mut Obb,
+            &mut Health,
+            &mut Sprite,
+            &mut Velocity,
+            &mut Speed,
+        ),
         (With<Enemy>, Without<Attack>),
     >,
     mut attacks: Query<(&Position, &Rotation, &Obb, Option<&mut Health>, &Attack), Without<Enemy>>,
 ) {
-    for (enemy_position, enemy_rotation, mut enemy_obb, mut enemy_health, mut enemy_sprite) in
-        &mut enemies
+    for (
+        enemy_position,
+        enemy_rotation,
+        mut enemy_obb,
+        mut enemy_health,
+        mut enemy_sprite,
+        mut enemy_velocity,
+        mut enemy_speed,
+    ) in &mut enemies
     {
         for (attack_position, attack_rotation, attack_obb, mut attack_health_option, attack) in
             &mut attacks
@@ -139,6 +152,8 @@ fn apply_damage(
                 let new_size = Vec2::splat(calculate_enemy_size(enemy_health.value as f32));
                 enemy_obb.half_extents = new_size;
                 enemy_sprite.custom_size = Some(new_size);
+                enemy_velocity.value *= 1.5;
+                enemy_speed.value *= 1.5;
             }
         }
     }
@@ -153,6 +168,14 @@ pub fn spawn_enemy(
     let enemy: Handle<Image> = asset_server.load("enemy.png");
 
     let size = Vec2::splat(calculate_enemy_size(variant.health() as f32));
+
+    let enemy_speed = match variant.health() as f32 {
+        3. => 22.22,
+        2. => 33.33,
+        1. => 50.,
+        _ => 10.,
+    };
+
     commands.spawn((
         Name::new(format!("{variant:?} Enemy")),
         SpriteBundle {
@@ -164,11 +187,11 @@ pub fn spawn_enemy(
             ..default()
         },
         Position::new(path.parts[0] - 2. * to_0_or_1(path.parts[1] - path.parts[0]) * TILE_SIZE),
-        Velocity::new(to_0_or_1(path.parts[1] - path.parts[0]) * ENEMY_SPEED),
+        Velocity::new(to_0_or_1(path.parts[1] - path.parts[0]) * enemy_speed),
         Layer::new(3.),
         Health::new(variant.health()),
         variant,
-        Speed::new(ENEMY_SPEED),
+        Speed::new(enemy_speed),
         PathState::new(1),
         Rotation::default(),
         Obb::new(size),
