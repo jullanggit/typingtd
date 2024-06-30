@@ -18,6 +18,8 @@ serde = "1.0.203"
 bevy_common_assets = { version = "0.10.0", features = ["json"] }
 strum = { version = "0.26.3", features = ["derive"] }
 default-constructor = "0.3.0"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 mimalloc = "0.1.43"
 
 [profile.dev.package."*"]
