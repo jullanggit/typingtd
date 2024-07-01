@@ -3,3 +3,6 @@ target/
 workflow.txt
 Cargo.lock
 deny.toml
+wasm/assets/
+wasm/typingTD.js
+wasm/typingTD_bg.wasm
