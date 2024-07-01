@@ -15,15 +15,6 @@ pub struct Handles {
     #[asset(path = "level1.png")]
     pub level1: Handle<Image>,
 
-    #[asset(path = "level2.png")]
-    pub level2: Handle<Image>,
-
-    #[asset(path = "level3.png")]
-    pub level3: Handle<Image>,
-
-    #[asset(path = "level4.png")]
-    pub level4: Handle<Image>,
-
     #[asset(path = "Normaleste.ttf")]
     pub font: Handle<Font>,
 
