@@ -24,6 +24,7 @@ use oneshot::OneShotPlugin;
 use path::PathPlugin;
 use physics::PhysicsPlugin;
 use projectile::ProjectilePlugin;
+use sound::SoundPlugin;
 use states::StatePlugin;
 use tower::TowerPlugin;
 use typing::TypingPlugin;
@@ -41,6 +42,7 @@ mod oneshot;
 mod path;
 mod physics;
 mod projectile;
+mod sound;
 mod states;
 mod tower;
 mod typing;
@@ -71,6 +73,7 @@ fn main() {
             MenuPlugin,
             UpgradePlugin,
             StatePlugin,
+            SoundPlugin,
         ))
         .run();
 }

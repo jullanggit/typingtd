@@ -6,6 +6,9 @@ use crate::{states::GameState, typing::Wordlists};
 
 #[derive(Resource, Debug, Default, AssetCollection)]
 pub struct Handles {
+    #[asset(path = "audio/boss.ogg")]
+    pub background_music: Handle<AudioSource>,
+
     #[asset(path = "all.words.json")]
     pub wordlists: Handle<Wordlists>,
 
