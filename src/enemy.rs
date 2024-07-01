@@ -33,7 +33,7 @@ impl Plugin for EnemyPlugin {
 }
 
 fn init_life(mut life: ResMut<Life>) {
-    life.value = 100.;
+    life.value = 20.;
 }
 
 #[derive(Component, Debug, Clone, Reflect, EnumIter, EnumCount)]
