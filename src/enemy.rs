@@ -1,10 +1,10 @@
-use bevy::{math::vec3, prelude::*};
+use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 use strum::{EnumCount, EnumIter};
 
 use crate::{
+    asset_loader::Handles,
     map::TILE_SIZE,
-    menus::{update_life_text, LifeText},
     path::{to_0_or_1, Path, PathState},
     physics::{Layer, Obb, Position, Rotation, Velocity},
     projectile::Speed,
@@ -28,7 +28,8 @@ impl Plugin for EnemyPlugin {
                     despawn_far_entities,
                 )
                     .in_set(GameSystemSet),
-            );
+            )
+            .observe(spawn_enemy);
     }
 }
 
@@ -36,7 +37,7 @@ fn init_life(mut life: ResMut<Life>) {
     life.value = 20.;
 }
 
-#[derive(Component, Debug, Clone, Reflect, EnumIter, EnumCount)]
+#[derive(Component, Debug, Clone, Copy, Reflect, EnumIter, EnumCount)]
 #[reflect(Component)]
 pub enum Enemy {
     Base,
@@ -50,19 +51,19 @@ impl Enemy {
             _ => unreachable!(),
         }
     }
-    pub const fn credit_cost(&self) -> f64 {
+    pub const fn credit_cost(self) -> f64 {
         match self {
             Self::Base => 1.,
             Self::Chunky => 2.,
         }
     }
-    pub const fn health(&self) -> f64 {
+    pub const fn health(self) -> f64 {
         match self {
             Self::Base => 1.,
             Self::Chunky => 3.,
         }
     }
-    pub const fn value(&self) -> f64 {
+    pub const fn value(self) -> f64 {
         match self {
             Self::Base => 1.,
             Self::Chunky => 3.,
@@ -159,13 +160,17 @@ fn apply_damage(
     }
 }
 
+#[derive(Debug, Clone, Event)]
+pub struct SpawnEnemy(pub Enemy);
+
 pub fn spawn_enemy(
-    In(variant): In<Enemy>,
+    trigger: Trigger<SpawnEnemy>,
     mut commands: Commands,
     path: Res<Path>,
-    asset_server: Res<AssetServer>,
+    handles: Res<Handles>,
 ) {
-    let enemy: Handle<Image> = asset_server.load("enemy.png");
+    let variant = trigger.event().0;
+    let enemy = handles.enemy.clone();
 
     let size = Vec2::splat(calculate_enemy_size(variant.health() as f32));
 
@@ -220,9 +225,8 @@ fn despawn_far_entities(
     entities: Query<(Entity, &Position, Option<(&Obb, &Rotation)>, Option<&Enemy>)>,
     camera: Query<&OrthographicProjection>,
     mut commands: Commands,
-    mut life_text: Query<&mut Text, With<LifeText>>,
     mut life: ResMut<Life>,
-    asset_server: Res<AssetServer>,
+    handles: Res<Handles>,
 ) {
     if let Ok(camera) = camera.get_single() {
         // Fix camera area not being set correctly for one frame after creation
@@ -253,19 +257,13 @@ fn despawn_far_entities(
             };
 
             if !in_window {
-                let old_life = life.value;
-                let new_life: f64;
-
                 if let Some(enemy_type) = enemy_type {
-                    new_life = life.value - enemy_type.value();
+                    let old_life = life.value;
+                    life.value -= enemy_type.value();
 
-                    if old_life > 0. && new_life <= 0. {
-                        spawn_death_menu(&mut commands, &asset_server);
-                    }
-
-                    if old_life > 0. {
-                        life.value = new_life;
-                        update_life_text(&mut life_text, life.value);
+                    // If you just died
+                    if old_life > 0. && life.value <= 0. {
+                        spawn_death_menu(&mut commands, &handles);
                     }
                 }
 
@@ -275,13 +273,11 @@ fn despawn_far_entities(
     }
 }
 
-fn spawn_death_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    let texture_handle: Handle<Image> = asset_server.load("death.png");
-
+fn spawn_death_menu(commands: &mut Commands, handles: &Handles) {
     commands.spawn((
         Name::new("menu image"),
         SpriteBundle {
-            texture: texture_handle,
+            texture: handles.death_screen.clone(),
             transform: Transform {
                 translation: Vec3::new(0., 0., 100.),
                 ..default()

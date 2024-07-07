@@ -2,7 +2,9 @@ use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 
 use crate::{
-    enemy::Enemy, oneshot::OneShotSystems, physics::apply_position, states::GameSystemSet,
+    enemy::{Enemy, SpawnEnemy},
+    physics::apply_position,
+    states::GameSystemSet,
 };
 
 pub struct DirectorPlugin;
@@ -44,7 +46,7 @@ enum Difficulty {
 }
 impl Difficulty {
     const fn multiplier(&self) -> f64 {
-        match self {
+        match *self {
             Self::Easy => 0.5,
             Self::Normal => 1.,
             Self::Hard => 2.,
@@ -57,18 +59,14 @@ fn update_director(mut director: ResMut<Director>, difficulty: Res<Difficulty>, 
     director.credits += director.credit_rate * difficulty.multiplier() * time.delta_seconds_f64();
 }
 
-fn spawn_enemies(
-    mut director: ResMut<Director>,
-    mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
-) {
+fn spawn_enemies(mut director: ResMut<Director>, mut commands: Commands) {
     if thread_rng().gen_range(0..100) == 69 {
         let random_enemy = Enemy::random();
         let random_enemy_cost = random_enemy.credit_cost();
         if random_enemy_cost <= director.credits {
             director.credits -= random_enemy_cost;
 
-            commands.run_system_with_input(oneshot_systems.spawn_enemy, random_enemy);
+            commands.trigger(SpawnEnemy(random_enemy));
         }
     }
 }

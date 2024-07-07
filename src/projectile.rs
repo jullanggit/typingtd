@@ -1,8 +1,9 @@
 use crate::{
+    asset_loader::Handles,
     enemy::{Attack, Enemy, Health},
     path::PathState,
     physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
-    tower::TowerPriority,
+    tower::{Tower, TowerPriority},
     upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
 use bevy::prelude::*;
@@ -14,7 +15,8 @@ impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Projectile>()
             .register_type::<Tracking>()
-            .add_systems(Update, track_enemy.before(apply_velocity));
+            .add_systems(Update, track_enemy.before(apply_velocity))
+            .observe(spawn_arrow);
     }
 }
 
@@ -45,30 +47,35 @@ impl Tracking {
     }
 }
 
+#[derive(Debug, Clone, Event)]
+pub struct SpawnArrow;
+
 // Arrow Tower
 /// Spawns an Arrow at the specified position, pointing towards the nearest Enemy
+/// TODO: Make projectile speed an upgrade
 pub fn spawn_arrow(
-    In((arrow_position, speed, upgrades, priority)): In<(
-        Position,
-        Speed,
-        ArrowTowerUpgrades,
-        TowerPriority,
-    )>,
+    trigger: Trigger<SpawnArrow>,
+    tower_query: Query<(&Position, &ArrowTowerUpgrades, &Tower)>,
     enemies: Query<(&Position, &PathState), With<Enemy>>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    handles: Res<Handles>,
 ) {
+    let (position, upgrades, tower) = tower_query
+        .get(trigger.entity())
+        .expect("Entity used to trigger this function should be in the query");
+    let priority = tower.priority;
+
     // Get the closest enemy, exit if there arent any
     let Some(targeted_enemy) = (match priority {
         TowerPriority::Nearest => {
-            closest_enemy(&enemies, arrow_position, |(position, _)| position.value)
+            closest_enemy(&enemies, *position, |(position, _)| position.value)
         }
         TowerPriority::Furthest => furthest_enemy(&enemies),
     }) else {
         return;
     };
 
-    let direction_to_enemy_vec2 = (targeted_enemy - arrow_position.value).normalize();
+    let direction_to_enemy_vec2 = (targeted_enemy - position.value).normalize();
     let direction_to_enemy = Quat::from_rotation_arc_2d(Vec2::X, direction_to_enemy_vec2);
 
     let shot_amount = upgrades[ArrowTowerUpgrade::Multishot];
@@ -88,16 +95,14 @@ pub fn spawn_arrow(
 
         let final_rotation = direction_to_enemy * rotation_difference;
 
-        let arrow: Handle<Image> = asset_server.load("arrow.png");
-
         let mut arrow = commands.spawn((
             Name::new("Arrow"),
-            arrow_position,
+            *position,
             Rotation::new(final_rotation),
             Projectile,
-            speed,
+            Speed::new(PROJECTILE_SPEED),
             SpriteBundle {
-                texture: arrow,
+                texture: handles.arrow.clone(),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(45., 10.)),
                     ..default()
@@ -105,7 +110,7 @@ pub fn spawn_arrow(
                 ..default()
             },
             Obb::new(Vec2::new(45., 10.)),
-            Velocity::new((final_rotation * Vec3::X).truncate() * speed.value),
+            Velocity::new((final_rotation * Vec3::X).truncate() * PROJECTILE_SPEED),
             Layer::new(1.),
             Attack::new(1.),
             Health::new(
@@ -142,7 +147,7 @@ where
 fn furthest_enemy(enemies: &Query<'_, '_, (&Position, &PathState), With<Enemy>>) -> Option<Vec2> {
     enemies
         .iter()
-        .max_by_key(|(_, path_state)| path_state.index)
+        .max_by_key(|&(_, path_state)| path_state.index)
         .map(|(position, _)| position.value)
 }
 

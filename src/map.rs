@@ -1,7 +1,7 @@
 use crate::{
     asset_loader::Handles,
     physics::Position,
-    states::GameState,
+    states::MenuState,
     tower::{Tower, TowerPriority, TowerType},
     upgrades::ArrowTowerUpgrades,
 };
@@ -14,7 +14,7 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Tile>()
             .register_type::<TileType>()
-            .add_systems(OnExit(GameState::MainMenu), setup_map);
+            .add_systems(OnExit(MenuState::MainMenu), setup_map);
     }
 }
 
@@ -36,12 +36,7 @@ pub const fn to_rgba_index(x: u32, y: u32, width: u32) -> u32 {
     (y * width + x) * 4
 }
 
-pub fn setup_map(
-    mut commands: Commands,
-    handles: Res<Handles>,
-    images: Res<Assets<Image>>,
-    asset_server: Res<AssetServer>,
-) {
+pub fn setup_map(mut commands: Commands, handles: Res<Handles>, images: Res<Assets<Image>>) {
     // loading image and getting image size
     let level1_image = images.get(&handles.level1).expect("Image should be loaded");
     let size = level1_image.size();
@@ -51,7 +46,7 @@ pub fn setup_map(
             let pixel_index = to_rgba_index(x, y, size.x) as usize;
             let rgba = &level1_image.data[pixel_index..pixel_index + 4];
 
-            match rgba {
+            match *rgba {
                 [0, 0, 0, 255] => spawn_tile(
                     &mut commands,
                     &handles,
@@ -70,13 +65,13 @@ pub fn setup_map(
                 ),
                 [111, 78, 55, 255] => spawn_tower(
                     &mut commands,
+                    &handles,
                     "Arrow Tower",
                     to_world(x, y, size),
                     TileType::Tower,
                     TowerType::Arrow,
-                    asset_server.clone(),
                 ),
-                other => {
+                ref other => {
                     dbg!(other);
                 }
             };
@@ -94,17 +89,17 @@ fn spawn_tile(
 ) {
     commands.spawn((
         Name::new(name),
-        SpriteSheetBundle {
+        SpriteBundle {
             sprite: Sprite {
                 custom_size: Some(Vec2::splat(TILE_SIZE)),
                 ..default()
             },
-            atlas: TextureAtlas {
-                layout: handles.grass_layout.clone(),
-                index: sprite_index,
-            },
             texture: handles.grass.clone(),
             ..default()
+        },
+        TextureAtlas {
+            layout: handles.grass_layout.clone(),
+            index: sprite_index,
         },
         Position::new(position),
         Tile { tile_type },
@@ -113,18 +108,16 @@ fn spawn_tile(
 
 fn spawn_tower(
     commands: &mut Commands,
+    handles: &Handles,
     name: &'static str,
     position: Vec2,
     tile_type: TileType,
     tower_type: TowerType,
-    asset_server: AssetServer,
 ) {
-    let tower: Handle<Image> = asset_server.load("tower.png");
-
     commands.spawn((
         Name::new(name),
         SpriteBundle {
-            texture: tower,
+            texture: handles.tower.clone(),
             sprite: Sprite {
                 custom_size: Some(Vec2::splat(TILE_SIZE)),
                 ..default()

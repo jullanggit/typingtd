@@ -8,6 +8,7 @@ impl Plugin for WasmPlugin {
     }
 }
 
+#[expect(clippy::let_underscore_must_use)]
 fn fit_canvas_to_parent() {
     let canvas: HtmlCanvasElement = web_sys::window()
         .expect("Window should exist")

@@ -1,6 +1,10 @@
 use std::fmt::Display;
 
-use bevy::prelude::*;
+use bevy::{
+    color::palettes::css::GREEN,
+    input::keyboard::{Key, KeyboardInput},
+    prelude::*,
+};
 use bevy_device_lang::get_lang;
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
@@ -8,12 +12,11 @@ use strum::EnumIter;
 
 use crate::{
     asset_loader::Handles,
-    oneshot::OneShotSystems,
-    physics::{Layer, Position},
-    projectile::{Speed, PROJECTILE_SPEED},
-    states::GameState,
-    tower::TowerPriority,
-    upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
+    physics::Layer,
+    projectile::SpawnArrow,
+    states::{change_menu_state, ChangeMenuState, MenuState, RunGame},
+    tower::{ChangeTowerPriority, TowerPriority},
+    upgrades::{ArrowTowerUpgrade, UpgradeTower},
 };
 
 // Plugin
@@ -30,11 +33,14 @@ impl Plugin for TypingPlugin {
                     handle_text_display.after(read_input),
                     handle_to_types.after(read_input),
                 ),
-            );
+            )
+            .observe(add_to_type)
+            .observe(change_language)
+            .observe(change_menu_state);
     }
 }
 
-#[derive(Resource, Debug, Clone, Reflect, Default, EnumIter)]
+#[derive(Resource, Debug, Clone, Copy, Reflect, Default, EnumIter)]
 #[reflect(Resource)]
 // pub struct Language(Languages);
 // #[derive(Debug, Clone, Reflect, Default)]
@@ -51,7 +57,7 @@ pub struct Wordlists {
 }
 impl Wordlists {
     /// Returns a random word from the inputted Language's wordlist
-    pub fn get_word(&self, language: &Language) -> String {
+    pub fn get_word(&self, language: Language) -> String {
         match language {
             Language::English => {
                 self.english[thread_rng().gen_range(0..self.english.len())].clone()
@@ -63,9 +69,10 @@ impl Wordlists {
 
 #[derive(Debug, Clone, Reflect)]
 pub enum Action {
-    ShootArrow(Position, ArrowTowerUpgrades, TowerPriority),
+    SpawnArrow(Entity),
     ChangeLanguage(Language),
-    ChangeState(GameState),
+    ChangeMenuState(MenuState),
+    RunGame,
     ChangeTowerPriority(Entity, TowerPriority),
     UpgradeTower(Entity, ArrowTowerUpgrade),
 }
@@ -74,10 +81,11 @@ impl Display for Action {
         write!(
             f,
             "{}",
-            match self {
-                Self::ShootArrow(_, _, _) => String::from("Shoot Arrow"),
-                Self::ChangeLanguage(language) => format!("{language:?}"),
-                Self::ChangeState(menu) => format!("{menu}"),
+            match *self {
+                Self::SpawnArrow(_) => String::from("Shoot Arrow"),
+                Self::ChangeLanguage(ref language) => format!("{language:?}"),
+                Self::ChangeMenuState(ref menu) => format!("{menu}"),
+                Self::RunGame => String::from("Run Game"),
                 Self::ChangeTowerPriority(_, priority) => format!("{priority:?}"),
                 Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
             }
@@ -115,45 +123,43 @@ fn set_device_language(mut lanugage: ResMut<Language>) {
 }
 
 /// Handles the input for the `ToTypes`
-fn read_input(mut chars: EventReader<ReceivedCharacter>, mut to_types: Query<&mut ToType>) {
+#[expect(clippy::wildcard_enum_match_arm)]
+fn read_input(mut chars: EventReader<KeyboardInput>, mut to_types: Query<&mut ToType>) {
     // For each character typed
     chars.read().for_each(|event| {
         // Get the actual character
-        let character = event
-            .char
-            .chars()
-            .next()
-            .expect("Character should exist if there is an event for it");
+        let character = match event.logical_key {
+            Key::Character(ref character) => character
+                .chars()
+                .next()
+                .expect("Character should exist if there is an event for it"),
+            Key::Space => ' ',
+            _ => {
+                return;
+            }
+        };
 
-        // If the character isnt the escape buttons character (so that going into the pause menu
-        // doesnt reset the progress)
-        if character != '\x1B' {
-            to_types
-                .iter_mut()
-                // Filter out inactive to_types
-                .filter(|to_type| to_type.active)
-                .for_each(|mut to_type| {
-                    // If the typed character is the next character of the word
-                    if to_type.word.chars().nth(to_type.progress) == Some(character) {
-                        to_type.progress += 1;
-                    // Otherwise reset the progress
-                    } else {
-                        to_type.progress = 0;
-                    }
-                });
-        }
+        to_types
+            .iter_mut()
+            // Filter out inactive to_types
+            .filter(|to_type| to_type.active)
+            .for_each(|mut to_type| {
+                // If the typed character is the next character of the word
+                if to_type.word.chars().nth(to_type.progress) == Some(character) {
+                    to_type.progress += 1;
+                // Otherwise reset the progress
+                } else {
+                    to_type.progress = 0;
+                }
+            });
     });
 }
 
 /// Executes the actions of any completed `ToTypes`, despawns them afterwards
-fn handle_to_types(
-    query: Query<(&ToType, &Parent, Entity)>,
-    mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
-) {
+fn handle_to_types(query: Query<(&ToType, &Parent, Entity)>, mut commands: Commands) {
     for (to_type, parent, entity) in &query {
         if to_type.progress >= to_type.word.chars().count() {
-            handle_action(to_type.action.clone(), &mut commands, &oneshot_systems);
+            handle_action(to_type.action.clone(), &mut commands);
 
             // Despawn entity
             commands.entity(parent.get()).remove_children(&[entity]);
@@ -162,56 +168,53 @@ fn handle_to_types(
     }
 }
 
-pub fn handle_action(
-    action: Action,
-    commands: &mut Commands<'_, '_>,
-    oneshot_systems: &Res<'_, OneShotSystems>,
-) {
+pub fn handle_action(action: Action, commands: &mut Commands<'_, '_>) {
     match action {
-        Action::ShootArrow(position, upgrades, priority) => commands.run_system_with_input(
-            oneshot_systems.spawn_arrow,
-            (position, Speed::new(PROJECTILE_SPEED), upgrades, priority),
-        ),
-        Action::ChangeLanguage(language) => {
-            commands.run_system_with_input(oneshot_systems.change_language, language);
-        }
-        Action::ChangeState(state) => {
-            commands.run_system_with_input(oneshot_systems.change_state, state);
-        }
+        Action::SpawnArrow(tower) => commands.trigger_targets(SpawnArrow, tower),
+        Action::ChangeLanguage(language) => commands.trigger(ChangeLanugage(language)),
+        Action::RunGame => commands.trigger(RunGame),
+        Action::ChangeMenuState(state) => commands.trigger(ChangeMenuState(state)),
         Action::ChangeTowerPriority(tower, priority) => {
-            commands
-                .run_system_with_input(oneshot_systems.change_tower_priority, (tower, priority));
+            commands.trigger_targets(ChangeTowerPriority(priority), tower);
         }
         Action::UpgradeTower(tower, upgrade) => {
-            commands.run_system_with_input(oneshot_systems.upgrade_tower, (tower, upgrade));
+            commands.trigger_targets(UpgradeTower(upgrade), tower);
         }
     }
 }
 
-pub fn change_language(In(new_language): In<Language>, mut language: ResMut<Language>) {
-    *language = new_language;
+#[derive(Debug, Clone, Event)]
+pub struct ChangeLanugage(Language);
+
+pub fn change_language(trigger: Trigger<ChangeLanugage>, mut language: ResMut<Language>) {
+    *language = trigger.event().0;
 }
 
+#[derive(Debug, Clone, Event)]
+pub struct AddToType(pub Action, pub Option<String>);
+
 pub fn add_to_type(
-    In((entity, action, option_word)): In<(Entity, Action, Option<String>)>,
+    trigger: Trigger<AddToType>,
     mut commands: Commands,
     wordlists: Res<Assets<Wordlists>>,
     handles: Res<Handles>,
     language: Res<Language>,
 ) {
-    let word = match option_word {
+    let AddToType(ref action, ref option_word) = *trigger.event();
+
+    let word = match *option_word {
         Some(ref word) => word.clone(),
         None => wordlists
-            .get(handles.wordlists.clone())
+            .get(&handles.wordlists)
             .expect("Wordlists should be loaded")
-            .get_word(&language)
+            .get_word(*language)
             .replace("ß", "ss"),
     };
 
-    commands.entity(entity).with_children(|parent| {
+    commands.entity(trigger.entity()).with_children(|parent| {
         let mut entity = parent.spawn((
             Name::new("Text"),
-            ToType::new(word.clone(), action),
+            ToType::new(word.clone(), action.clone()),
             Layer::new(3.),
         ));
 
@@ -224,7 +227,7 @@ pub fn add_to_type(
                             style: TextStyle {
                                 font: handles.font.clone(),
                                 font_size: 25.,
-                                color: Color::GREEN,
+                                color: Color::Srgba(GREEN),
                             },
                         },
                         TextSection {
@@ -249,7 +252,7 @@ pub fn add_to_type(
                             style: TextStyle {
                                 font: handles.font.clone(),
                                 font_size: 20.,
-                                color: Color::GREEN,
+                                color: Color::Srgba(GREEN),
                             },
                         },
                         TextSection {
@@ -275,30 +278,5 @@ fn handle_text_display(mut query: Query<(&ToType, &mut Text), Changed<ToType>>) 
         text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
 
         text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
-    }
-}
-
-/// Toggles the "active" state of all `ToTypes`, hides them if inactive
-pub fn toggle_to_type(mut to_types: Query<(&mut ToType, &mut Visibility)>) {
-    for (mut to_type, mut visibility) in &mut to_types {
-        to_type.active = !to_type.active;
-
-        if to_type.active {
-            *visibility = Visibility::Inherited;
-        } else {
-            *visibility = Visibility::Hidden;
-        }
-    }
-}
-
-pub fn remove_inactive_to_types(
-    to_types: Query<(Entity, &Parent, &ToType)>,
-    mut commands: Commands,
-) {
-    for (entity, parent, to_type) in &to_types {
-        if !to_type.active {
-            commands.entity(parent.get()).remove_children(&[entity]);
-            commands.entity(entity).despawn();
-        }
     }
 }

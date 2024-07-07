@@ -20,7 +20,6 @@ use directors::DirectorPlugin;
 use enemy::EnemyPlugin;
 use map::MapPlugin;
 use menus::MenuPlugin;
-use oneshot::OneShotPlugin;
 use path::PathPlugin;
 use physics::PhysicsPlugin;
 use projectile::ProjectilePlugin;
@@ -38,7 +37,6 @@ mod enemy;
 mod fps;
 mod map;
 mod menus;
-mod oneshot;
 mod path;
 mod physics;
 mod projectile;
@@ -52,9 +50,11 @@ mod wasm;
 fn main() {
     App::new()
         // disable checking for .meta files
-        .insert_resource(AssetMetaCheck::Never)
-        .add_plugins(DefaultPlugins)
-        .add_debug_plugin(WorldInspectorPlugin::default())
+        .add_plugins(DefaultPlugins.set(AssetPlugin {
+            meta_check: AssetMetaCheck::Never,
+            ..default()
+        }))
+        .add_debug_plugin(WorldInspectorPlugin::new())
         // app.add_debug_plugin(FpsPlugin)
         .add_wasm_plugin(WasmPlugin)
         // game plugins
@@ -65,7 +65,6 @@ fn main() {
             MapPlugin,
             TowerPlugin,
             ProjectilePlugin,
-            OneShotPlugin,
             PhysicsPlugin,
             PathPlugin,
             EnemyPlugin,

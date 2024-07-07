@@ -1,26 +1,25 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::css::DARK_GRAY, prelude::*};
 
 use crate::{
     asset_loader::Handles,
-    enemy::{Life, Money},
-    oneshot::OneShotSystems,
-    states::{GameState, PauseMenuSystemSet},
+    enemy::{Health, Life, Money},
+    states::{ChangeMenuState, GameState, MenuState, PauseMenuSystemSet, RunGame},
     tower::Tower,
-    typing::{handle_action, Action},
+    typing::{handle_action, Action, AddToType},
 };
 
 pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MenuButton>()
-            .add_systems(Startup, spawn_menu_image)
-            .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+            .add_systems(OnEnter(MenuState::MainMenu), spawn_menu_image)
+            .add_systems(OnEnter(MenuState::MainMenu), spawn_main_menu)
             .add_systems(
-                OnExit(GameState::MainMenu),
+                OnExit(MenuState::MainMenu),
                 (spawn_money_text, spawn_life_display),
             )
             .add_systems(
-                OnEnter(GameState::TowerSelectionMenu),
+                OnEnter(MenuState::TowerSelectionMenu),
                 add_tower_selection_to_types,
             )
             .add_systems(
@@ -30,8 +29,10 @@ impl Plugin for MenuPlugin {
                     button_interactions.in_set(PauseMenuSystemSet),
                     add_menu_button_to_type.in_set(PauseMenuSystemSet),
                     update_money_text.run_if(resource_changed::<Money>),
+                    update_life_text.run_if(resource_changed::<Life>),
                 ),
-            );
+            )
+            .observe(spawn_menu);
     }
 }
 
@@ -59,9 +60,12 @@ impl MenuButton {
     }
 }
 
-pub fn update_life_text(life_text: &mut Query<&mut Text, With<LifeText>>, life: f64) {
+pub fn update_life_text(
+    mut life_text: Query<&mut Text, (With<LifeText>, Changed<Health>)>,
+    life: Res<Life>,
+) {
     if let Ok(mut life_text) = life_text.get_single_mut() {
-        life_text.sections[0].value = format!("{} Lives", life);
+        life_text.sections[0].value = format!("{} Lives", life.value);
     }
 }
 
@@ -125,43 +129,30 @@ fn spawn_money_text(mut commands: Commands, handles: Res<Handles>) {
     ));
 }
 
-fn spawn_main_menu(mut commands: Commands, oneshot_systems: Res<OneShotSystems>) {
-    commands.run_system_with_input(oneshot_systems.spawn_menu, GameState::MainMenu);
+fn spawn_main_menu(mut commands: Commands) {
+    commands.trigger(SpawnMenu(MenuState::MainMenu));
 }
 
 fn toggle_pause_menu(
     input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
-    current_state: Res<State<GameState>>,
+    game_state: Res<State<GameState>>,
 ) {
     if input.just_pressed(KeyCode::Escape) {
-        // Toggles to_types
-        commands.run_system(oneshot_systems.toggle_to_type);
-
-        if current_state.get().is_menu_state() {
-            commands.run_system_with_input(oneshot_systems.change_state, GameState::Running);
-            commands.run_system(oneshot_systems.remove_inactive_to_types);
+        if *game_state.get() == GameState::Menu {
+            commands.trigger(RunGame);
         } else {
-            commands.run_system_with_input(oneshot_systems.change_state, GameState::PauseMenu);
+            commands.trigger(ChangeMenuState(MenuState::PauseMenu));
         }
     }
 }
 
-pub fn despawn_menus(mut commands: Commands, menus: Query<Entity, With<Menu>>) {
-    for menu in &menus {
-        commands.entity(menu).despawn_recursive();
-    }
-}
-
-fn spawn_menu_image(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let texture_handle: Handle<Image> = asset_server.load("menu_image.png");
-
+fn spawn_menu_image(mut commands: Commands, handles: Res<Handles>) {
     commands.spawn((
         Name::new("menu image"),
         Menu,
         SpriteBundle {
-            texture: texture_handle,
+            texture: handles.menu_image.clone(),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(1024., 576.)),
                 ..default()
@@ -171,7 +162,11 @@ fn spawn_menu_image(asset_server: Res<AssetServer>, mut commands: Commands) {
     ));
 }
 
-pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
+#[derive(Debug, Clone, Event)]
+pub struct SpawnMenu(pub MenuState);
+
+pub fn spawn_menu(trigger: Trigger<SpawnMenu>, mut commands: Commands) {
+    let menu = trigger.event().0;
     commands
         .spawn((
             NodeBundle {
@@ -184,7 +179,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                background_color: Color::rgba(0.5, 0.5, 0.5, 0.6).into(),
+                background_color: Color::srgba(0.5, 0.5, 0.5, 0.6).into(),
                 ..default()
             },
             Menu,
@@ -196,7 +191,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                         format!("{menu}"),
                         TextStyle {
                             font_size: 80.0,
-                            color: Color::DARK_GRAY,
+                            color: Color::Srgba(DARK_GRAY),
                             ..default()
                         },
                     )],
@@ -204,10 +199,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                 },
                 ..default()
             });
-            for button_action in menu
-                .get_buttons()
-                .expect("Provided game state should be a menu state")
-            {
+            for button_action in menu.get_buttons() {
                 parent.spawn((
                     ButtonBundle {
                         style: Style {
@@ -217,7 +209,7 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        background_color: Color::rgba(0.2, 0.2, 0.2, 0.8).into(),
+                        background_color: Color::srgba(0.2, 0.2, 0.2, 0.8).into(),
                         ..default()
                     },
                     MenuButton::new(button_action),
@@ -226,19 +218,14 @@ pub fn spawn_menu(In(menu): In<GameState>, mut commands: Commands) {
         });
 }
 
-fn add_tower_selection_to_types(
-    towers: Query<Entity, With<Tower>>,
-    mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
-) {
+fn add_tower_selection_to_types(towers: Query<Entity, With<Tower>>, mut commands: Commands) {
     for tower in &towers {
-        commands.run_system_with_input(
-            oneshot_systems.add_to_type,
-            (
-                tower,
-                Action::ChangeState(GameState::SelectedTower(tower)),
+        commands.trigger_targets(
+            AddToType(
+                Action::ChangeMenuState(MenuState::SelectedTower(tower)),
                 None,
             ),
+            tower,
         );
     }
 }
@@ -246,36 +233,33 @@ fn add_tower_selection_to_types(
 fn add_menu_button_to_type(
     menu_buttons: Query<(Entity, &MenuButton), Without<Children>>,
     mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
 ) {
     for (entity, menu_button) in &menu_buttons {
-        commands.run_system_with_input(
-            oneshot_systems.add_to_type,
-            (
-                entity,
+        commands.trigger_targets(
+            AddToType(
                 menu_button.action.clone(),
                 Some(format!("{}", menu_button.action)),
             ),
+            entity,
         );
     }
 }
 
 // Menu interactions
-const NORMAL_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.8);
-const HOVERED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 0.4);
-const PRESSED_COLOR: Color = Color::rgba(0.2, 0.2, 0.2, 1.0);
+const NORMAL_COLOR: Color = Color::srgba(0.2, 0.2, 0.2, 0.8);
+const HOVERED_COLOR: Color = Color::srgba(0.2, 0.2, 0.2, 0.4);
+const PRESSED_COLOR: Color = Color::srgba(0.2, 0.2, 0.2, 1.0);
 
 pub fn button_interactions(
     mut buttons: Query<(&Interaction, &MenuButton, &mut BackgroundColor), Changed<Interaction>>,
     mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
 ) {
     for (interaction, menu_button, mut background_color) in &mut buttons {
         match *interaction {
             Interaction::Pressed => {
                 *background_color = PRESSED_COLOR.into();
 
-                handle_action(menu_button.action.clone(), &mut commands, &oneshot_systems);
+                handle_action(menu_button.action.clone(), &mut commands);
             }
             Interaction::Hovered => *background_color = HOVERED_COLOR.into(),
             Interaction::None => *background_color = NORMAL_COLOR.into(),

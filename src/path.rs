@@ -4,7 +4,7 @@ use crate::{
     map::{to_rgba_index, to_world},
     physics::{apply_velocity, Position, Velocity},
     projectile::Speed,
-    states::{GameState, GameSystemSet},
+    states::{GameSystemSet, MenuState},
 };
 use bevy::prelude::*;
 use strum::{EnumIter, IntoEnumIterator};
@@ -19,7 +19,7 @@ impl Plugin for PathPlugin {
                 Update,
                 (follow_path.after(apply_velocity)).in_set(GameSystemSet),
             )
-            .add_systems(OnExit(GameState::MainMenu), load_path);
+            .add_systems(OnExit(MenuState::MainMenu), load_path);
     }
 }
 
@@ -32,7 +32,7 @@ enum Direction {
 }
 impl Direction {
     const fn offset(&self, image_size: UVec2) -> isize {
-        match self {
+        match *self {
             Self::Up => -(4 * image_size.x as isize),
             Self::Down => 4 * image_size.x as isize,
             Self::Left => -4,
@@ -40,7 +40,7 @@ impl Direction {
         }
     }
     const fn inverse(&self) -> Self {
-        match self {
+        match *self {
             Self::Up => Self::Down,
             Self::Down => Self::Up,
             Self::Left => Self::Right,
@@ -102,6 +102,7 @@ fn follow_path(
     }
 }
 
+#[expect(clippy::integer_division)]
 fn load_path(mut path: ResMut<Path>, handles: Res<Handles>, images: Res<Assets<Image>>) {
     // loading image and getting image size
     let image = images.get(&handles.level1).expect("Image should be loaded");
@@ -139,7 +140,7 @@ fn load_path(mut path: ResMut<Path>, handles: Res<Handles>, images: Res<Assets<I
 fn find_start_tile(image_size: UVec2, image: &Image) -> Option<(u32, u32)> {
     (0..image_size.x)
         .flat_map(|x| (0..image_size.y).map(move |y| (x, y)))
-        .find(|(x, y)| {
+        .find(|&(x, y)| {
             let pixel_index = (y * image_size.x + x) as usize * 4; // Assuming 4 bytes per pixel (RGBA)
             let rgba = &image.data[pixel_index..pixel_index + 4];
 
@@ -147,6 +148,7 @@ fn find_start_tile(image_size: UVec2, image: &Image) -> Option<(u32, u32)> {
         })
 }
 
+#[expect(clippy::integer_division)]
 fn find_next_index(
     image: &Image,
     index: usize,
@@ -169,7 +171,7 @@ fn find_next_index(
             Direction::Left | Direction::Right => {
                 (index / 4) / image_size.x as usize == (next_index / 4) / image_size.x as usize
             }
-            _ => true,
+            Direction::Up | Direction::Down => true,
         };
 
         // Also check if the index is inside the images bounds, and if the tile is a path tile

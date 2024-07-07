@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use strum::IntoEnumIterator;
 
 use crate::{
-    oneshot::OneShotSystems,
+    menus::SpawnMenu,
     tower::TowerPriority,
     typing::{Action, Language},
     upgrades::ArrowTowerUpgrade,
@@ -14,8 +14,11 @@ pub struct StatePlugin;
 impl Plugin for StatePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
+            .add_sub_state::<MenuState>()
             .configure_sets(Update, GameSystemSet.run_if(in_state(GameState::Running)))
-            .configure_sets(Update, PauseMenuSystemSet.run_if(in_menu_state));
+            .configure_sets(Update, PauseMenuSystemSet.run_if(in_state(GameState::Menu)))
+            .observe(run_game)
+            .observe(change_menu_state);
     }
 }
 
@@ -25,12 +28,10 @@ pub struct GameSystemSet;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PauseMenuSystemSet;
 
-#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
-pub enum GameState {
+#[derive(SubStates, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
+#[source(GameState = GameState::Menu)]
+pub enum MenuState {
     #[default]
-    Loading,
-    Running,
-    // Menus
     MainMenu,
     PauseMenu,
     LanguageMenu,
@@ -39,56 +40,38 @@ pub enum GameState {
     TowerUpgradeMenu(Entity),
     TowerPriorityMenu(Entity),
 }
-impl GameState {
-    /// If the State is a menu state, returns a the actions for the buttons in the menu
-    pub fn get_buttons(&self) -> Option<Vec<Action>> {
-        match self {
-            Self::Loading | Self::Running => None,
-            Self::MainMenu => Some(vec![Action::ChangeState(Self::Running)]),
-            Self::PauseMenu => Some(
-                [Self::LanguageMenu, Self::TowerSelectionMenu]
-                    .into_iter()
-                    .map(Action::ChangeState)
-                    .collect(),
-            ),
-            Self::LanguageMenu => Some(Language::iter().map(Action::ChangeLanguage).collect()),
-            Self::TowerSelectionMenu => Some(Vec::new()),
-            Self::SelectedTower(entity) => Some(
-                [
-                    Self::TowerUpgradeMenu(*entity),
-                    Self::TowerPriorityMenu(*entity),
-                ]
+impl MenuState {
+    pub fn get_buttons(&self) -> Vec<Action> {
+        match *self {
+            Self::MainMenu => vec![Action::RunGame],
+            Self::PauseMenu => [Self::LanguageMenu, Self::TowerSelectionMenu]
                 .into_iter()
-                .map(Action::ChangeState)
+                .map(Action::ChangeMenuState)
                 .collect(),
-            ),
-            Self::TowerUpgradeMenu(entity) => Some(
-                ArrowTowerUpgrade::iter()
-                    .map(|upgrade| Action::UpgradeTower(*entity, upgrade))
-                    .collect(),
-            ),
-            Self::TowerPriorityMenu(entity) => Some(
-                TowerPriority::iter()
-                    .map(|priority| Action::ChangeTowerPriority(*entity, priority))
-                    .collect(),
-            ),
-        }
-    }
-    pub const fn is_menu_state(&self) -> bool {
-        match self {
-            Self::Running | Self::Loading => false,
-            _other => true,
+            Self::LanguageMenu => Language::iter().map(Action::ChangeLanguage).collect(),
+            Self::TowerSelectionMenu => Vec::new(),
+            Self::SelectedTower(entity) => [
+                Self::TowerUpgradeMenu(entity),
+                Self::TowerPriorityMenu(entity),
+            ]
+            .into_iter()
+            .map(Action::ChangeMenuState)
+            .collect(),
+            Self::TowerUpgradeMenu(entity) => ArrowTowerUpgrade::iter()
+                .map(|upgrade| Action::UpgradeTower(entity, upgrade))
+                .collect(),
+            Self::TowerPriorityMenu(entity) => TowerPriority::iter()
+                .map(|priority| Action::ChangeTowerPriority(entity, priority))
+                .collect(),
         }
     }
 }
-impl Display for GameState {
+impl Display for MenuState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
-            match self {
-                Self::Loading => "Loading",
-                Self::Running => "Play",
+            match *self {
                 Self::MainMenu => "Main Menu",
                 Self::PauseMenu => "Options",
                 Self::LanguageMenu => "Languages",
@@ -101,25 +84,30 @@ impl Display for GameState {
     }
 }
 
-fn in_menu_state(state: Res<State<GameState>>) -> bool {
-    state.is_menu_state()
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
+pub enum GameState {
+    #[default]
+    Loading,
+    Running,
+    Menu,
 }
 
-/// Changes the state to the given state, spawns and despawns menus if necessary
-pub fn change_state(
-    In(state_to_set): In<GameState>,
+#[derive(Debug, Clone, Event)]
+pub struct RunGame;
+
+pub fn run_game(_trigger: Trigger<RunGame>, mut next_state: ResMut<NextState<GameState>>) {
+    next_state.set(GameState::Running);
+}
+
+#[derive(Debug, Clone, Event)]
+pub struct ChangeMenuState(pub MenuState);
+
+pub fn change_menu_state(
+    trigger: Trigger<ChangeMenuState>,
     mut commands: Commands,
-    oneshot_systems: Res<OneShotSystems>,
-    current_state: Res<State<GameState>>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_state: ResMut<NextState<MenuState>>,
 ) {
-    if current_state.get().is_menu_state() {
-        // Despawn all menus and set game state to running
-        commands.run_system(oneshot_systems.despawn_menus);
-    }
-    if state_to_set.is_menu_state() {
-        // Spawn Pause menu and set game state to pause menu
-        commands.run_system_with_input(oneshot_systems.spawn_menu, state_to_set.clone());
-    }
+    let state_to_set = trigger.event().0;
     next_state.set(state_to_set);
+    commands.trigger(SpawnMenu(state_to_set));
 }

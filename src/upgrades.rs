@@ -16,7 +16,8 @@ pub struct UpgradePlugin;
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ArrowTowerUpgrades>()
-            .add_systems(Update, update_upgrade_price.in_set(PauseMenuSystemSet));
+            .add_systems(Update, update_upgrade_price.in_set(PauseMenuSystemSet))
+            .observe(upgrade_tower);
     }
 }
 
@@ -46,7 +47,7 @@ impl Display for ArrowTowerUpgrade {
         write!(
             f,
             "{}",
-            match self {
+            match *self {
                 Self::Piercing => "Piercing",
                 Self::Multishot => "Multishot",
                 Self::Tracking => "Tracking",
@@ -73,13 +74,18 @@ impl IndexMut<ArrowTowerUpgrade> for ArrowTowerUpgrades {
     }
 }
 
+#[derive(Debug, Clone, Event)]
+pub struct UpgradeTower(pub ArrowTowerUpgrade);
+
 pub fn upgrade_tower(
-    In((tower, upgrade)): In<(Entity, ArrowTowerUpgrade)>,
+    trigger: Trigger<UpgradeTower>,
     mut upgrades: Query<&mut ArrowTowerUpgrades>,
     mut money: ResMut<Money>,
 ) {
+    let upgrade = trigger.event().0;
+
     let mut tower_upgrades = upgrades
-        .get_mut(tower)
+        .get_mut(trigger.entity())
         .expect("Provided Entity should exist / have the TowerUpgrades component");
 
     // Get the level of the upgrade, or insert the upgrade with a level of 1
@@ -97,11 +103,11 @@ pub fn update_upgrade_price(
     upgrades: Query<&ArrowTowerUpgrades>,
 ) {
     for mut to_type in &mut to_types {
-        if let Action::UpgradeTower(entity, upgrade) = &to_type.action {
+        if let Action::UpgradeTower(entity, upgrade) = to_type.action {
             // Get the level of the upgrade
             let level = upgrades
-                .get(*entity)
-                .expect("Passed entity should have Upgrades")[*upgrade];
+                .get(entity)
+                .expect("Passed entity should have Upgrades")[upgrade];
 
             let cost = upgrade.cost(level);
 

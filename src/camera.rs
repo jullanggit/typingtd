@@ -1,20 +1,18 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 
-use crate::{asset_loader::Handles, map::TILE_SIZE, states::GameState};
+use crate::{asset_loader::Handles, map::TILE_SIZE, states::MenuState};
 
 // Plugin
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::MainMenu), spawn_camera);
+        app.add_systems(OnEnter(MenuState::MainMenu), spawn_camera);
     }
 }
 
 // Systems
 fn spawn_camera(mut commands: Commands, images: Res<Assets<Image>>, handles: Res<Handles>) {
-    let image = images
-        .get(handles.level1.clone())
-        .expect("Image should be loaded");
+    let image = images.get(&handles.level1).expect("Image should be loaded");
 
     commands.spawn((
         Name::new("Camera"),
