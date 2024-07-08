@@ -276,6 +276,9 @@ pub fn add_to_type(
         }
         if *game_state.get() != GameState::Menu {
             entity.insert(StateScoped(*game_state.get()));
+        // Clean up to_types added during tower selection
+        } else if let Action::ChangeMenuState(MenuState::SelectedTower(_)) = *action {
+            entity.insert(StateScoped(MenuState::TowerSelectionMenu));
         }
     });
 }
