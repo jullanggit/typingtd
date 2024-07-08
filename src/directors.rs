@@ -55,7 +55,7 @@ impl Difficulty {
 }
 
 fn update_director(mut director: ResMut<Director>, difficulty: Res<Difficulty>, time: Res<Time>) {
-    director.credit_rate += 0.05 * difficulty.multiplier() * time.delta_seconds_f64();
+    director.credit_rate += 0.1 * difficulty.multiplier() * time.delta_seconds_f64();
     director.credits += director.credit_rate * difficulty.multiplier() * time.delta_seconds_f64();
 }
 

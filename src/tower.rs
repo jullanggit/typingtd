@@ -46,11 +46,13 @@ pub enum TowerPriority {
 }
 
 fn insert_tower_typing(
-    towers: Query<Entity, (With<Tower>, Without<Children>)>,
+    towers: Query<(Entity, Option<&Children>), With<Tower>>,
     mut commands: Commands,
 ) {
-    for entity in &towers {
-        commands.trigger_targets(AddToType(Action::SpawnArrow(entity), None), entity);
+    for (entity, children) in &towers {
+        if children.map_or(true, |children| children.is_empty()) {
+            commands.trigger_targets(AddToType(Action::SpawnArrow(entity), None), entity);
+        }
     }
 }
 

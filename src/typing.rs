@@ -2,7 +2,10 @@ use std::fmt::Display;
 
 use bevy::{
     color::palettes::css::GREEN,
-    input::keyboard::{Key, KeyboardInput},
+    input::{
+        keyboard::{Key, KeyboardInput},
+        ButtonState,
+    },
     prelude::*,
 };
 use bevy_device_lang::get_lang;
@@ -14,7 +17,7 @@ use crate::{
     asset_loader::Handles,
     physics::Layer,
     projectile::SpawnArrow,
-    states::{change_menu_state, ChangeMenuState, MenuState, RunGame},
+    states::{change_menu_state, ChangeMenuState, GameState, MenuState, RunGame},
     tower::{ChangeTowerPriority, TowerPriority},
     upgrades::{ArrowTowerUpgrade, UpgradeTower},
 };
@@ -99,7 +102,6 @@ pub struct ToType {
     pub word: String,
     pub progress: usize,
     pub action: Action,
-    pub active: bool,
 }
 impl ToType {
     pub const fn new(word: String, action: Action) -> Self {
@@ -107,7 +109,6 @@ impl ToType {
             word,
             progress: 0,
             action,
-            active: true,
         }
     }
 }
@@ -126,33 +127,35 @@ fn set_device_language(mut lanugage: ResMut<Language>) {
 #[expect(clippy::wildcard_enum_match_arm)]
 fn read_input(mut chars: EventReader<KeyboardInput>, mut to_types: Query<&mut ToType>) {
     // For each character typed
-    chars.read().for_each(|event| {
-        // Get the actual character
-        let character = match event.logical_key {
-            Key::Character(ref character) => character
-                .chars()
-                .next()
-                .expect("Character should exist if there is an event for it"),
-            Key::Space => ' ',
-            _ => {
-                return;
-            }
-        };
-
-        to_types
-            .iter_mut()
-            // Filter out inactive to_types
-            .filter(|to_type| to_type.active)
-            .for_each(|mut to_type| {
-                // If the typed character is the next character of the word
-                if to_type.word.chars().nth(to_type.progress) == Some(character) {
-                    to_type.progress += 1;
-                // Otherwise reset the progress
-                } else {
-                    to_type.progress = 0;
+    chars
+        .read()
+        .filter(|&event| event.state == ButtonState::Pressed)
+        .for_each(|event| {
+            // Get the actual character
+            let character = match event.logical_key {
+                Key::Character(ref character) => character
+                    .chars()
+                    .next()
+                    .expect("Character should exist if there is an event for it"),
+                Key::Space => ' ',
+                _ => {
+                    return;
                 }
-            });
-    });
+            };
+
+            to_types
+                .iter_mut()
+                // Filter out inactive to_types
+                .for_each(|mut to_type| {
+                    // If the typed character is the next character of the word
+                    if to_type.word.chars().nth(to_type.progress) == Some(character) {
+                        to_type.progress += 1;
+                    // Otherwise reset the progress
+                    } else {
+                        to_type.progress = 0;
+                    }
+                });
+        });
 }
 
 /// Executes the actions of any completed `ToTypes`, despawns them afterwards
@@ -199,6 +202,7 @@ pub fn add_to_type(
     wordlists: Res<Assets<Wordlists>>,
     handles: Res<Handles>,
     language: Res<Language>,
+    game_state: Res<State<GameState>>,
 ) {
     let AddToType(ref action, ref option_word) = *trigger.event();
 
@@ -218,6 +222,7 @@ pub fn add_to_type(
             Layer::new(3.),
         ));
 
+        // If the to type is going to be in a menu, use a diferent bundle
         if option_word.is_some() {
             entity.insert(TextBundle {
                 text: Text {
@@ -256,7 +261,7 @@ pub fn add_to_type(
                             },
                         },
                         TextSection {
-                            value: word,
+                            value: word.clone(),
                             style: TextStyle {
                                 font: handles.font.clone(),
                                 font_size: 20.,
@@ -268,6 +273,9 @@ pub fn add_to_type(
                 },
                 ..default()
             });
+        }
+        if *game_state.get() != GameState::Menu {
+            entity.insert(StateScoped(*game_state.get()));
         }
     });
 }

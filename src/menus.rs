@@ -159,6 +159,7 @@ fn spawn_menu_image(mut commands: Commands, handles: Res<Handles>) {
             },
             ..default()
         },
+        StateScoped(MenuState::MainMenu),
     ));
 }
 
@@ -183,6 +184,7 @@ pub fn spawn_menu(trigger: Trigger<SpawnMenu>, mut commands: Commands) {
                 ..default()
             },
             Menu,
+            StateScoped(menu),
         ))
         .with_children(|parent: &mut ChildBuilder| {
             parent.spawn(TextBundle {

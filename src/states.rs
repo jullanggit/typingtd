@@ -17,6 +17,8 @@ impl Plugin for StatePlugin {
             .add_sub_state::<MenuState>()
             .configure_sets(Update, GameSystemSet.run_if(in_state(GameState::Running)))
             .configure_sets(Update, PauseMenuSystemSet.run_if(in_state(GameState::Menu)))
+            .enable_state_scoped_entities::<GameState>()
+            .enable_state_scoped_entities::<MenuState>()
             .observe(run_game)
             .observe(change_menu_state);
     }
@@ -84,7 +86,7 @@ impl Display for MenuState {
     }
 }
 
-#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
+#[derive(States, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum GameState {
     #[default]
     Loading,
@@ -105,9 +107,11 @@ pub struct ChangeMenuState(pub MenuState);
 pub fn change_menu_state(
     trigger: Trigger<ChangeMenuState>,
     mut commands: Commands,
-    mut next_state: ResMut<NextState<MenuState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
 ) {
     let state_to_set = trigger.event().0;
-    next_state.set(state_to_set);
+    next_game_state.set(GameState::Menu);
+    next_menu_state.set(state_to_set);
     commands.trigger(SpawnMenu(state_to_set));
 }
