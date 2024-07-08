@@ -112,13 +112,13 @@ impl ToType {
     }
 }
 
-/// Sets the lanugage based on the device language
-fn set_device_language(mut lanugage: ResMut<Language>) {
+/// Sets the language based on the device language
+fn set_device_language(mut language: ResMut<Language>) {
     let Some(language_string) = get_lang() else {
         return;
     };
     if language_string.contains("de") {
-        *lanugage = Language::German;
+        *language = Language::German;
     }
 }
 
@@ -171,7 +171,7 @@ fn handle_to_types(query: Query<(&ToType, &Parent, Entity)>, mut commands: Comma
 pub fn handle_action(action: Action, commands: &mut Commands<'_, '_>) {
     match action {
         Action::SpawnArrow(tower) => commands.trigger_targets(SpawnArrow, tower),
-        Action::ChangeLanguage(language) => commands.trigger(ChangeLanugage(language)),
+        Action::ChangeLanguage(language) => commands.trigger(ChangeLanguage(language)),
         Action::RunGame => commands.trigger(RunGame),
         Action::ChangeMenuState(state) => commands.trigger(ChangeMenuState(state)),
         Action::ChangeTowerPriority(tower, priority) => {
@@ -184,9 +184,9 @@ pub fn handle_action(action: Action, commands: &mut Commands<'_, '_>) {
 }
 
 #[derive(Debug, Clone, Event)]
-pub struct ChangeLanugage(Language);
+pub struct ChangeLanguage(Language);
 
-pub fn change_language(trigger: Trigger<ChangeLanugage>, mut language: ResMut<Language>) {
+pub fn change_language(trigger: Trigger<ChangeLanguage>, mut language: ResMut<Language>) {
     *language = trigger.event().0;
 }
 
