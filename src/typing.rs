@@ -222,7 +222,7 @@ pub fn add_to_type(
             Layer::new(3.),
         ));
 
-        // If the to type is going to be in a menu, use a diferent bundle
+        // If the to type is going to be in a menu, use a different bundle
         if option_word.is_some() {
             entity.insert(TextBundle {
                 text: Text {
