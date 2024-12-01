@@ -1,11 +1,11 @@
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use strum::{EnumCount, EnumIter};
 
 use crate::{
     asset_loader::Handles,
     map::TILE_SIZE,
-    path::{to_0_or_1, Path, PathState},
+    path::{Path, PathState, to_0_or_1},
     physics::{Layer, Obb, Position, Rotation, Velocity},
     projectile::Speed,
     states::GameSystemSet,
@@ -29,7 +29,7 @@ impl Plugin for EnemyPlugin {
                 )
                     .in_set(GameSystemSet),
             )
-            .observe(spawn_enemy);
+            .add_observer(spawn_enemy);
     }
 }
 
@@ -183,12 +183,9 @@ pub fn spawn_enemy(
 
     commands.spawn((
         Name::new(format!("{variant:?} Enemy")),
-        SpriteBundle {
-            texture: enemy,
-            sprite: Sprite {
-                custom_size: Some(size),
-                ..default()
-            },
+        Sprite {
+            image: enemy,
+            custom_size: Some(size),
             ..default()
         },
         Position::new(path.parts[0] - 2. * to_0_or_1(path.parts[1] - path.parts[0]) * TILE_SIZE),
@@ -276,17 +273,11 @@ fn despawn_far_entities(
 fn spawn_death_menu(commands: &mut Commands, handles: &Handles) {
     commands.spawn((
         Name::new("menu image"),
-        SpriteBundle {
-            texture: handles.death_screen.clone(),
-            transform: Transform {
-                translation: Vec3::new(0., 0., 100.),
-                ..default()
-            },
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(1024., 576.)),
-                ..default()
-            },
+        Sprite {
+            image: handles.death_screen.clone(),
+            custom_size: Some(Vec2::new(1024., 576.)),
             ..default()
         },
+        Transform::from_xyz(0., 0., 100.),
     ));
 }

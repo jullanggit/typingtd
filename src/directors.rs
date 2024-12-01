@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 
 use crate::{
     enemy::{Enemy, SpawnEnemy},
@@ -55,8 +55,8 @@ impl Difficulty {
 }
 
 fn update_director(mut director: ResMut<Director>, difficulty: Res<Difficulty>, time: Res<Time>) {
-    director.credit_rate += 0.1 * difficulty.multiplier() * time.delta_seconds_f64();
-    director.credits += director.credit_rate * difficulty.multiplier() * time.delta_seconds_f64();
+    director.credit_rate += 0.1 * difficulty.multiplier() * time.delta_secs_f64();
+    director.credits += director.credit_rate * difficulty.multiplier() * time.delta_secs_f64();
 }
 
 fn spawn_enemies(mut director: ResMut<Director>, mut commands: Commands) {

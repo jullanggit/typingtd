@@ -3,13 +3,13 @@ use std::fmt::Display;
 use bevy::{
     color::palettes::css::GREEN,
     input::{
-        keyboard::{Key, KeyboardInput},
         ButtonState,
+        keyboard::{Key, KeyboardInput},
     },
     prelude::*,
 };
 use bevy_device_lang::get_lang;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use serde::Deserialize;
 use strum::EnumIter;
 
@@ -17,7 +17,7 @@ use crate::{
     asset_loader::Handles,
     physics::Layer,
     projectile::SpawnArrow,
-    states::{change_menu_state, ChangeMenuState, GameState, MenuState, RunGame},
+    states::{ChangeMenuState, GameState, MenuState, RunGame, change_menu_state},
     tower::{ChangeTowerPriority, TowerPriority},
     upgrades::{ArrowTowerUpgrade, UpgradeTower},
 };
@@ -37,9 +37,9 @@ impl Plugin for TypingPlugin {
                     handle_to_types.after(read_input),
                 ),
             )
-            .observe(add_to_type)
-            .observe(change_language)
-            .observe(change_menu_state);
+            .add_observer(add_to_type)
+            .add_observer(change_language)
+            .add_observer(change_menu_state);
     }
 }
 
@@ -81,18 +81,14 @@ pub enum Action {
 }
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                Self::SpawnArrow(_) => String::from("Shoot Arrow"),
-                Self::ChangeLanguage(ref language) => format!("{language:?}"),
-                Self::ChangeMenuState(ref menu) => format!("{menu}"),
-                Self::RunGame => String::from("Run Game"),
-                Self::ChangeTowerPriority(_, priority) => format!("{priority:?}"),
-                Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
-            }
-        )
+        write!(f, "{}", match *self {
+            Self::SpawnArrow(_) => String::from("Shoot Arrow"),
+            Self::ChangeLanguage(ref language) => format!("{language:?}"),
+            Self::ChangeMenuState(ref menu) => format!("{menu}"),
+            Self::RunGame => String::from("Run Game"),
+            Self::ChangeTowerPriority(_, priority) => format!("{priority:?}"),
+            Self::UpgradeTower(_, upgrade) => format!("{upgrade}"),
+        })
     }
 }
 
@@ -219,60 +215,35 @@ pub fn add_to_type(
         let mut entity = parent.spawn((
             Name::new("Text"),
             ToType::new(word.clone(), action.clone()),
+            TextLayout::default(),
             Layer::new(3.),
         ));
+        entity.with_children(|parent| {
+            parent.spawn((
+                TextSpan::new(String::new()),
+                TextFont {
+                    font: handles.font.clone(),
+                    font_size: 25.,
+                    ..default()
+                },
+                TextColor(Color::Srgba(GREEN)),
+            ));
+            parent.spawn((
+                TextSpan::new(String::new()),
+                TextFont {
+                    font: handles.font.clone(),
+                    font_size: 25.,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            ));
+        });
 
         // If the to type is going to be in a menu, use a different bundle
         if option_word.is_some() {
-            entity.insert(TextBundle {
-                text: Text {
-                    sections: vec![
-                        TextSection {
-                            value: String::new(),
-                            style: TextStyle {
-                                font: handles.font.clone(),
-                                font_size: 25.,
-                                color: Color::Srgba(GREEN),
-                            },
-                        },
-                        TextSection {
-                            value: word.clone(),
-                            style: TextStyle {
-                                font: handles.font.clone(),
-                                font_size: 25.,
-                                color: Color::WHITE,
-                            },
-                        },
-                    ],
-                    ..default()
-                },
-                ..default()
-            });
+            entity.insert(Text::new(String::new()));
         } else {
-            entity.insert(Text2dBundle {
-                text: Text {
-                    sections: vec![
-                        TextSection {
-                            value: String::new(),
-                            style: TextStyle {
-                                font: handles.font.clone(),
-                                font_size: 20.,
-                                color: Color::Srgba(GREEN),
-                            },
-                        },
-                        TextSection {
-                            value: word.clone(),
-                            style: TextStyle {
-                                font: handles.font.clone(),
-                                font_size: 20.,
-                                color: Color::WHITE,
-                            },
-                        },
-                    ],
-                    ..default()
-                },
-                ..default()
-            });
+            entity.insert(Text2d::new(String::new()));
         }
         if *game_state.get() != GameState::Menu {
             entity.insert(StateScoped(*game_state.get()));
@@ -284,10 +255,9 @@ pub fn add_to_type(
 }
 
 /// Changes character color based on word completion
-fn handle_text_display(mut query: Query<(&ToType, &mut Text), Changed<ToType>>) {
-    for (to_type, mut text) in &mut query {
-        text.sections[0].value = to_type.word.chars().take(to_type.progress).collect();
-
-        text.sections[1].value = to_type.word.chars().skip(to_type.progress).collect();
+fn handle_text_display(query: Query<(&ToType, Entity), Changed<ToType>>, mut writer: TextUiWriter) {
+    for (to_type, text) in &query {
+        *writer.text(text, 0) = to_type.word.chars().take(to_type.progress).collect();
+        *writer.text(text, 1) = to_type.word.chars().skip(to_type.progress).collect();
     }
 }

@@ -1,11 +1,11 @@
-use bevy::{color::palettes::css::DARK_GRAY, prelude::*};
+use bevy::{color::palettes::css::DARK_GRAY, prelude::*, sprite::Anchor};
 
 use crate::{
     asset_loader::Handles,
     enemy::{Health, Life, Money},
     states::{ChangeMenuState, GameState, MenuState, PauseMenuSystemSet, RunGame},
     tower::Tower,
-    typing::{handle_action, Action, AddToType},
+    typing::{Action, AddToType, handle_action},
 };
 
 pub struct MenuPlugin;
@@ -32,7 +32,7 @@ impl Plugin for MenuPlugin {
                     update_life_text.run_if(resource_changed::<Life>),
                 ),
             )
-            .observe(spawn_menu);
+            .add_observer(spawn_menu);
     }
 }
 
@@ -61,70 +61,63 @@ impl MenuButton {
 }
 
 pub fn update_life_text(
-    mut life_text: Query<&mut Text, (With<LifeText>, Changed<Health>)>,
+    life_text: Query<Entity, (With<LifeText>, Changed<Health>)>,
+    mut writer: TextUiWriter,
     life: Res<Life>,
 ) {
-    if let Ok(mut life_text) = life_text.get_single_mut() {
-        life_text.sections[0].value = format!("{} Lives", life.value);
+    if let Ok(life_text) = life_text.get_single() {
+        *writer.text(life_text, 0) = format!("{} Lives", life.value);
     }
 }
 
 fn spawn_life_display(mut commands: Commands, handles: Res<Handles>) {
     commands.spawn((
         Name::new("Life display"),
-        TextBundle {
-            text: Text {
-                sections: vec![TextSection::new(
-                    String::new(),
-                    TextStyle {
-                        font: handles.font.clone(),
-                        font_size: 80.0,
-                        color: Color::BLACK,
-                    },
-                )],
-                ..default()
-            },
-            style: Style {
-                position_type: PositionType::Absolute,
-                left: Val::Px(10.),
-                top: Val::Px(10.),
-                ..default()
-            },
+        Text2d::new(String::new()),
+        TextFont {
+            font: handles.font.clone(),
+            font_size: 80.0,
             ..default()
         },
+        TextColor::BLACK,
+        // Previously:
+        // style: Style {
+        //     position_type: PositionType::Absolute,
+        //     left: Val::Px(10.),
+        //     top: Val::Px(10.),
+        // },
+        Anchor::TopLeft,
         LifeText,
     ));
 }
 
-fn update_money_text(mut money_text: Query<&mut Text, With<MoneyText>>, money: Res<Money>) {
-    if let Ok(mut money_text) = money_text.get_single_mut() {
-        money_text.sections[0].value = format!("{}$", money.value);
+fn update_money_text(
+    money_text: Query<Entity, With<MoneyText>>,
+    mut writer: TextUiWriter,
+    money: Res<Money>,
+) {
+    if let Ok(money_text) = money_text.get_single() {
+        *writer.text(money_text, 0) = format!("{}$", money.value);
     }
 }
 
 fn spawn_money_text(mut commands: Commands, handles: Res<Handles>) {
     commands.spawn((
         Name::new("Money display"),
-        TextBundle {
-            text: Text {
-                sections: vec![TextSection::new(
-                    String::new(),
-                    TextStyle {
-                        font: handles.font.clone(),
-                        font_size: 80.0,
-                        color: Color::BLACK,
-                    },
-                )],
-                ..default()
-            },
-            style: Style {
-                position_type: PositionType::Absolute,
-                right: Val::Px(10.),
-                top: Val::Px(10.),
-                ..default()
-            },
+        Text2d::new(String::new()),
+        TextFont {
+            font: handles.font.clone(),
+            font_size: 80.0,
             ..default()
         },
+        TextColor::BLACK,
+        // Previously:
+        // style: Style {
+        //     position_type: PositionType::Absolute,
+        //     right: Val::Px(10.),
+        //     top: Val::Px(10.),
+        // },
+        Anchor::TopRight,
         MoneyText,
     ));
 }
@@ -151,12 +144,9 @@ fn spawn_menu_image(mut commands: Commands, handles: Res<Handles>) {
     commands.spawn((
         Name::new("menu image"),
         Menu,
-        SpriteBundle {
-            texture: handles.menu_image.clone(),
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(1024., 576.)),
-                ..default()
-            },
+        Sprite {
+            image: handles.menu_image.clone(),
+            custom_size: Some(Vec2::new(1024., 576.)),
             ..default()
         },
         StateScoped(MenuState::MainMenu),
@@ -170,50 +160,36 @@ pub fn spawn_menu(trigger: Trigger<SpawnMenu>, mut commands: Commands) {
     let menu = trigger.event().0;
     commands
         .spawn((
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    height: Val::Percent(100.0),
-                    align_items: AlignItems::Center,
-                    row_gap: Val::Px(8.0),
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                background_color: Color::srgba(0.5, 0.5, 0.5, 0.6).into(),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(8.0),
+                justify_content: JustifyContent::Center,
                 ..default()
             },
+            BackgroundColor(Color::srgba(0.5, 0.5, 0.5, 0.6)),
             Menu,
             StateScoped(menu),
         ))
         .with_children(|parent: &mut ChildBuilder| {
-            parent.spawn(TextBundle {
-                text: Text {
-                    sections: vec![TextSection::new(
-                        format!("{menu}"),
-                        TextStyle {
-                            font_size: 80.0,
-                            color: Color::Srgba(DARK_GRAY),
-                            ..default()
-                        },
-                    )],
-                    ..default()
-                },
-                ..default()
-            });
+            parent.spawn((
+                Text2d::new(format!("{menu}")),
+                TextFont::from_font_size(80.),
+                TextColor(Color::Srgba(DARK_GRAY)),
+            ));
             for button_action in menu.get_buttons() {
                 parent.spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(15. + button_action.to_string().len() as f32 * 22.),
-                            height: Val::Px(80.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },
-                        background_color: Color::srgba(0.2, 0.2, 0.2, 0.8).into(),
+                    Button,
+                    Node {
+                        width: Val::Px(15. + button_action.to_string().len() as f32 * 22.),
+                        height: Val::Px(80.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
                         ..default()
                     },
+                    BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.8)),
                     MenuButton::new(button_action),
                 ));
             }

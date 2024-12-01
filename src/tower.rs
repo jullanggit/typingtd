@@ -12,7 +12,7 @@ impl Plugin for TowerPlugin {
         app.register_type::<Tower>()
             .register_type::<TowerType>()
             .add_systems(Update, insert_tower_typing.in_set(GameSystemSet))
-            .observe(change_tower_priority);
+            .add_observer(change_tower_priority);
     }
 }
 

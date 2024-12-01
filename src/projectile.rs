@@ -2,7 +2,7 @@ use crate::{
     asset_loader::Handles,
     enemy::{Attack, Enemy, Health},
     path::PathState,
-    physics::{apply_velocity, Layer, Obb, Position, Rotation, Velocity},
+    physics::{Layer, Obb, Position, Rotation, Velocity, apply_velocity},
     tower::{Tower, TowerPriority},
     upgrades::{ArrowTowerUpgrade, ArrowTowerUpgrades},
 };
@@ -16,7 +16,7 @@ impl Plugin for ProjectilePlugin {
         app.register_type::<Projectile>()
             .register_type::<Tracking>()
             .add_systems(Update, track_enemy.before(apply_velocity))
-            .observe(spawn_arrow);
+            .add_observer(spawn_arrow);
     }
 }
 
@@ -101,12 +101,9 @@ pub fn spawn_arrow(
             Rotation::new(final_rotation),
             Projectile,
             Speed::new(PROJECTILE_SPEED),
-            SpriteBundle {
-                texture: handles.arrow.clone(),
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(45., 10.)),
-                    ..default()
-                },
+            Sprite {
+                image: handles.arrow.clone(),
+                custom_size: Some(Vec2::new(45., 10.)),
                 ..default()
             },
             Obb::new(Vec2::new(45., 10.)),
@@ -172,7 +169,7 @@ fn track_enemy(
         let target_rotation = Quat::from_rotation_arc_2d(Vec2::X, direction);
 
         // Calculate the rotation step based on the tracking speed and delta time
-        let rotation_speed = tracking.rotation_speed * time.delta_seconds();
+        let rotation_speed = tracking.rotation_speed * time.delta_secs();
         rotation.value = rotation.value.slerp(target_rotation, rotation_speed);
 
         // readjust the velocity

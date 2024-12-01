@@ -145,7 +145,7 @@ impl Layer {
 
 pub fn apply_velocity(mut query: Query<(&mut Position, &Velocity)>, time: Res<Time>) {
     for (mut position, velocity) in &mut query {
-        position.value += velocity.value * time.delta_seconds();
+        position.value += velocity.value * time.delta_secs();
     }
 }
 pub fn apply_position(mut query: Query<(&Position, &mut Transform)>) {

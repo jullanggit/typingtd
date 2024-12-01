@@ -19,8 +19,8 @@ impl Plugin for StatePlugin {
             .configure_sets(Update, PauseMenuSystemSet.run_if(in_state(GameState::Menu)))
             .enable_state_scoped_entities::<GameState>()
             .enable_state_scoped_entities::<MenuState>()
-            .observe(run_game)
-            .observe(change_menu_state);
+            .add_observer(run_game)
+            .add_observer(change_menu_state);
     }
 }
 
@@ -70,19 +70,15 @@ impl MenuState {
 }
 impl Display for MenuState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                Self::MainMenu => "Main Menu",
-                Self::PauseMenu => "Options",
-                Self::LanguageMenu => "Languages",
-                Self::TowerSelectionMenu => "Select Tower",
-                Self::SelectedTower(_) => "Select Option",
-                Self::TowerUpgradeMenu(_) => "Upgrades",
-                Self::TowerPriorityMenu(_) => "Priorities",
-            }
-        )
+        write!(f, "{}", match *self {
+            Self::MainMenu => "Main Menu",
+            Self::PauseMenu => "Options",
+            Self::LanguageMenu => "Languages",
+            Self::TowerSelectionMenu => "Select Tower",
+            Self::SelectedTower(_) => "Select Option",
+            Self::TowerUpgradeMenu(_) => "Upgrades",
+            Self::TowerPriorityMenu(_) => "Priorities",
+        })
     }
 }
 

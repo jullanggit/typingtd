@@ -89,17 +89,14 @@ fn spawn_tile(
 ) {
     commands.spawn((
         Name::new(name),
-        SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
-                ..default()
-            },
-            texture: handles.grass.clone(),
+        Sprite {
+            image: handles.grass.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: handles.grass_layout.clone(),
+                index: sprite_index,
+            }),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
             ..default()
-        },
-        TextureAtlas {
-            layout: handles.grass_layout.clone(),
-            index: sprite_index,
         },
         Position::new(position),
         Tile { tile_type },
@@ -116,12 +113,9 @@ fn spawn_tower(
 ) {
     commands.spawn((
         Name::new(name),
-        SpriteBundle {
-            texture: handles.tower.clone(),
-            sprite: Sprite {
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
-                ..default()
-            },
+        Sprite {
+            image: handles.tower.clone(),
+            custom_size: Some(Vec2::splat(TILE_SIZE)),
             ..default()
         },
         Position::new(position),

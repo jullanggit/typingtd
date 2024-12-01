@@ -1,5 +1,5 @@
 use crate::asset_loader::Handles;
-use bevy::{audio::PlaybackMode, prelude::*};
+use bevy::prelude::*;
 
 pub struct SoundPlugin;
 impl Plugin for SoundPlugin {
@@ -11,12 +11,7 @@ impl Plugin for SoundPlugin {
 fn setup(mut commands: Commands, handles: Res<Handles>) {
     commands.spawn((
         Name::new("Background music"),
-        AudioBundle {
-            source: handles.background_music.clone(),
-            settings: PlaybackSettings {
-                mode: PlaybackMode::Loop,
-                ..default()
-            },
-        },
+        AudioPlayer(handles.background_music.clone()),
+        PlaybackSettings::LOOP,
     ));
 }

@@ -17,7 +17,7 @@ impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ArrowTowerUpgrades>()
             .add_systems(Update, update_upgrade_price.in_set(PauseMenuSystemSet))
-            .observe(upgrade_tower);
+            .add_observer(upgrade_tower);
     }
 }
 
@@ -44,15 +44,11 @@ impl ArrowTowerUpgrade {
 
 impl Display for ArrowTowerUpgrade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                Self::Piercing => "Piercing",
-                Self::Multishot => "Multishot",
-                Self::Tracking => "Tracking",
-            }
-        )
+        write!(f, "{}", match *self {
+            Self::Piercing => "Piercing",
+            Self::Multishot => "Multishot",
+            Self::Tracking => "Tracking",
+        })
     }
 }
 
